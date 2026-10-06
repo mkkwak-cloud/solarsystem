@@ -63,10 +63,14 @@ function refreshSpeedText() {
 speedEl.value = speedToSlider(clock.speed);
 speedEl.addEventListener('input', () => { clock.speed = sliderToSpeed(Number(speedEl.value)); refreshSpeedText(); });
 refreshSpeedText();
-pauseBtn.addEventListener('click', () => {
+const quickPause = $('quickPause');
+function togglePause() {
   clock.paused = !clock.paused;
   pauseBtn.textContent = clock.paused ? '재생' : '일시정지';
-});
+  quickPause.textContent = clock.paused ? '▶' : '⏸';
+}
+pauseBtn.addEventListener('click', togglePause);
+quickPause.addEventListener('click', togglePause);
 
 const pad = (n) => String(n).padStart(2, '0');
 const toLocalInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -132,14 +136,22 @@ bindOpt('optTail', 'tail');
 bindOpt('optPath', 'path');
 
 // ---------- 패널 접기/펼치기 ----------
-$('panelToggle').addEventListener('click', () => {
-  const c = document.body.classList.toggle('collapsed');
-  $('panelToggle').textContent = c ? '▶' : '◀';
-});
+const narrow = window.matchMedia('(max-width: 800px)');
+const isMobile = () => narrow.matches;
+function setPanelCollapsed(c) {
+  document.body.classList.toggle('collapsed', c);
+  $('panelToggle').textContent = isMobile() ? (c ? '☰' : '✕') : (c ? '▶' : '◀');
+}
+function closePanelOnMobile() { if (isMobile()) setPanelCollapsed(true); }
+$('panelToggle').addEventListener('click', () => setPanelCollapsed(!document.body.classList.contains('collapsed')));
+setPanelCollapsed(isMobile()); // 폰에서는 처음에 접어 둔다 (화면 전체를 쓰도록)
+narrow.addEventListener('change', () => setPanelCollapsed(isMobile()));
 
 // ---------- 정보 카드 ----------
 let selectedId = null;
-const cards = createCards($('cards'), [SUN, ...PLANETS], select, focusOn);
+// 카드를 누르면: 컴퓨터는 선택만(더블클릭하면 접근), 폰은 더블탭이 불편하므로 바로 접근하고 패널을 닫는다
+const selectCard = (id) => { if (isMobile()) { focusOn(id); closePanelOnMobile(); } else select(id); };
+const cards = createCards($('cards'), [SUN, ...PLANETS], selectCard, focusOn);
 cards.setKind('sun', 'solid');
 
 // 위성 카드: 행성별로 접이식 묶음
@@ -153,11 +165,11 @@ for (const hid of HOST_ORDER) {
   $('moonCards').appendChild(det);
   hostGroups.set(hid, det.querySelector('.cards-in'));
 }
-const moonCards = createCards((def) => hostGroups.get(moons.items.get(def.id).data.planet), moons.all().map((it) => it.def), select, focusOn);
+const moonCards = createCards((def) => hostGroups.get(moons.items.get(def.id).data.planet), moons.all().map((it) => it.def), selectCard, focusOn);
 for (const it of moons.all()) moonCards.setKind(it.def.id, 'solid');
 
 // 혜성 카드 (체크박스로 개별 켜고 끄기, 전체 켜기/끄기)
-const cometCards = createCards($('cometCards'), comets.all().map((it) => ({ ...it.def, checkable: true })), select, focusOn,
+const cometCards = createCards($('cometCards'), comets.all().map((it) => ({ ...it.def, checkable: true })), selectCard, focusOn,
   (id, v) => comets.setEnabled(id, v));
 for (const it of comets.all()) {
   const k = it.data.kind;
@@ -168,7 +180,7 @@ $('cometsAll').addEventListener('click', () => { comets.setAllEnabled(true); for
 $('cometsNone').addEventListener('click', () => { comets.setAllEnabled(false); for (const it of comets.all()) cometCards.setChecked(it.def.id, false); });
 
 // 소행성 카드
-const astCards = createCards($('astCards'), asteroids.all().map((it) => ({ ...it.def, checkable: true })), select, focusOn,
+const astCards = createCards($('astCards'), asteroids.all().map((it) => ({ ...it.def, checkable: true })), selectCard, focusOn,
   (id, v) => asteroids.setEnabled(id, v));
 for (const it of asteroids.all()) astCards.setKind(it.def.id, 'solid');
 $('astSummary').textContent = `소행성·왜행성 목록 (${asteroids.all().length})`;
@@ -176,7 +188,7 @@ $('astAll').addEventListener('click', () => { asteroids.setAllEnabled(true); for
 $('astNone').addEventListener('click', () => { asteroids.setAllEnabled(false); for (const it of asteroids.all()) astCards.setChecked(it.def.id, false); });
 
 // 탐사선 카드
-const vgCards = createCards($('vgCards'), voyager.all().map((it) => it.def), select, focusOn);
+const vgCards = createCards($('vgCards'), voyager.all().map((it) => it.def), selectCard, focusOn);
 for (const it of voyager.all()) vgCards.setBadge(it.def.id, '탐사선', 'comet');
 
 const itemOf = (id) => bodies.items.get(id) ?? moons.items.get(id) ?? comets.items.get(id) ?? asteroids.items.get(id) ?? voyager.items.get(id);
@@ -260,9 +272,9 @@ function updateCards(nowMs) {
 // ---------- 클릭 / 더블클릭 ----------
 const { camera, controls, renderer } = world;
 const v3 = new THREE.Vector3();
-function pickAt(clientX, clientY) {
+function pickAt(clientX, clientY, reach = 18) {
   const rect = renderer.domElement.getBoundingClientRect();
-  let best = null, bestD = 18; // 화면에서 18px 이내
+  let best = null, bestD = reach; // 화면에서 reach(px) 이내
   for (const it of [...bodies.all(), ...moons.all(), ...comets.all(), ...asteroids.all(), ...voyager.all()]) {
     if (!it.group.visible) continue; // 줌 연동으로 숨겨진 위성은 건너뜀
     v3.copy(it.group.position).project(camera);
@@ -275,15 +287,22 @@ function pickAt(clientX, clientY) {
   return best;
 }
 let down = null;
+let lastTap = null;
 renderer.domElement.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; });
 renderer.domElement.addEventListener('click', (e) => {
-  if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return; // 드래그는 클릭이 아님
-  const id = pickAt(e.clientX, e.clientY);
-  if (id) select(id);
+  if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) return; // 드래그는 클릭이 아님
+  const reach = e.pointerType === 'touch' || isMobile() ? 32 : 18; // 손가락은 더 넓게
+  const id = pickAt(e.clientX, e.clientY, reach);
+  if (!id) { lastTap = null; return; }
+  const now = performance.now();
+  // 폰은 더블클릭 이벤트가 안정적이지 않아, 같은 천체를 짧게 두 번 누르면 접근으로 처리한다
+  if (lastTap && lastTap.id === id && now - lastTap.t < 450) { lastTap = null; focusOn(id); return; }
+  lastTap = { id, t: now };
+  select(id);
 });
 renderer.domElement.addEventListener('dblclick', (e) => {
-  const id = pickAt(e.clientX, e.clientY);
-  if (id) { select(id); focusOn(id); }
+  const id = pickAt(e.clientX, e.clientY, isMobile() ? 32 : 18);
+  if (id) { lastTap = null; select(id); focusOn(id); }
 });
 
 // ---------- 포커스(더블클릭 시 접근 후 따라가기) ----------
@@ -312,13 +331,13 @@ function voyagerView() {
   const dir = new THREE.Vector3(0.3, 0.55, 1).normalize();
   camera.position.copy(center).addScaledVector(dir, (radius * 1.25) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
 }
-$('voyagerView').addEventListener('click', voyagerView);
+$('voyagerView').addEventListener('click', () => { voyagerView(); closePanelOnMobile(); });
 function resetView() {
   focusId = null; focusAnim = null;
   controls.target.set(0, 0, 0);
   camera.position.set(0, 14, 26);
 }
-$('resetView').addEventListener('click', resetView);
+$('resetView').addEventListener('click', () => { resetView(); closePanelOnMobile(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') resetView(); });
 
 function updateFocus(dt) {

@@ -91,3 +91,23 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
 .label.voyager.sel { color: var(--accent); }
 
 .maker { color: #9fb4d4; font-weight: 600; letter-spacing: .03em; }
+
+/* ---- 폰·좁은 화면 (800px 이하) ---- */
+#quickPause { display: none; }
+@media (max-width: 800px) {
+  :root { --panel-w: min(88vw, 340px); }
+  #panel { box-shadow: 4px 0 24px rgba(0,0,0,.6); padding-bottom: 80px; }
+  #stage, body.collapsed #stage { left: 0; }           /* 패널은 화면 위에 겹쳐 나오고, 화면 크기는 그대로 */
+  #panelToggle { top: 10px; width: 46px; height: 46px; font-size: 20px; border-radius: 0 12px 12px 0; }
+  body.collapsed #panelToggle { border: 1px solid var(--accent); background: rgba(11,17,32,.92); }
+  #simDate, body.collapsed #simDate { left: 62px; top: 14px; font-size: 15px; }
+  #quickPause { display: block; position: fixed; right: 10px; top: 10px; z-index: 6; width: 46px; height: 46px; padding: 0; font-size: 18px;
+    border-radius: 12px; background: rgba(11,17,32,.92); }
+  body:not(.collapsed) #quickPause { display: none; }
+  #status { bottom: 84px; font-size: 11px; max-width: 92%; }
+  #credits { font-size: 9px; line-height: 1.35; }
+  .label, .label.moon, .label.comet, .label.asteroid, .label.voyager { font-size: 10px; }
+  button { padding: 10px 14px; }
+  .card { padding: 10px 12px; }
+  #loading { width: 78%; }
+}
