@@ -95,8 +95,20 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
 /* ---- 폰·좁은 화면 (800px 이하) ---- */
 #quickPause { display: none; }
 @media (max-width: 800px) {
-  :root { --panel-w: min(88vw, 340px); }
-  #panel { box-shadow: 4px 0 24px rgba(0,0,0,.6); padding-bottom: 80px; }
+  :root { --panel-w: clamp(176px, 50vw, 240px); }   /* 폰에서는 메뉴 폭을 화면의 절반 정도로 */
+  #panel { box-shadow: 4px 0 24px rgba(0,0,0,.6); padding: 8px 8px 80px; font-size: 12px; }
+  #panel h1 { font-size: 14px; margin: 2px 0 6px; }
+  #panel h2 { margin: 12px 0 4px; font-size: 11px; }
+  #panel .row { flex-wrap: wrap; gap: 6px; }
+  input[type=datetime-local] { font-size: 11px; padding: 6px 4px; min-width: 0; width: 100%; flex: 1 1 100%; }
+  #panel button { padding: 8px 8px; font-size: 12px; }
+  #panel button.wide { font-size: 11.5px; line-height: 1.3; }
+  .hint { font-size: 10.5px; }
+  .checks label { padding: 3px 0; }
+  .card { padding: 7px 8px; }
+  .card .stats { font-size: 11px; }
+  .badge { font-size: 9.5px; padding: 1px 5px; }
+  .seg span { padding: 7px 0; font-size: 12px; }
   #stage, body.collapsed #stage { left: 0; }           /* 패널은 화면 위에 겹쳐 나오고, 화면 크기는 그대로 */
   #panelToggle { top: 10px; width: 46px; height: 46px; font-size: 20px; border-radius: 0 12px 12px 0; }
   body.collapsed #panelToggle { border: 1px solid var(--accent); background: rgba(11,17,32,.92); }
@@ -107,7 +119,5 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
   #status { bottom: 84px; font-size: 11px; max-width: 92%; }
   #credits { font-size: 9px; line-height: 1.35; }
   .label, .label.moon, .label.comet, .label.asteroid, .label.voyager { font-size: 10px; }
-  button { padding: 10px 14px; }
-  .card { padding: 10px 12px; }
   #loading { width: 78%; }
 }
