@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>태양계 시뮬레이터</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.js",
+      "three/addons/": "./vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="vendor/astronomy.browser.js"></script>
+</head>
+<body>
+  <aside id="panel">
+    <h1>태양계 시뮬레이터</h1>
+
+    <section>
+      <h2>시간 배속</h2>
+      <input id="speed" type="range" min="0" max="1000" step="1" value="363">
+      <div class="row">
+        <span id="speedText">10x</span>
+        <button id="pauseBtn" type="button">일시정지</button>
+      </div>
+      <div class="hint" id="speedHint"></div>
+    </section>
+
+    <section>
+      <h2>날짜 설정</h2>
+      <div class="row">
+        <input id="dateInput" type="datetime-local" step="60">
+        <button id="applyDate" type="button">적용</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>거리 스케일</h2>
+      <div class="seg" id="scaleMode">
+        <label><input type="radio" name="scale" value="linear" checked><span>선형</span></label>
+        <label><input type="radio" name="scale" value="log"><span>로그</span></label>
+        <label><input type="radio" name="scale" value="compress"><span>입축</span></label>
+      </div>
+      <div class="hint" id="scaleHint"></div>
+    </section>
+
+    <section>
+      <h2>행성 크기</h2>
+      <input id="sizeScale" type="range" min="0.3" max="4" step="0.1" value="1">
+      <div class="hint" id="sizeText">x1.0</div>
+    </section>
+
+    <section>
+      <h2>표시 옵션</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="optOrbit" checked> 궤도 표시</label>
+        <label><input type="checkbox" id="optLabel" checked> 이름 표시</label>
+        <label><input type="checkbox" id="optSpin" checked> 행성 자전</label>
+        <label><input type="checkbox" id="optMoons" checked> 위성 표시</label>
+        <label><input type="checkbox" id="optComets"> 혜성 표시</label>
+        <label><input type="checkbox" id="optAsteroids"> 소행성 표시 (9개)</label>
+        <label><input type="checkbox" id="optBelt"> 소행성대 (장식용, 실제 데이터 아님)</label>
+        <label><input type="checkbox" id="optVoyager1"> 보이저 1호</label>
+        <label><input type="checkbox" id="optVoyager2"> 보이저 2호</label>
+        <label><input type="checkbox" id="optTail"> 이동 표시 (꼬리)</label>
+        <label><input type="checkbox" id="optPath"> 궤적 표시</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>보기</h2>
+      <button id="resetView" type="button" class="wide">태양계 전체 보기</button>
+      <button id="voyagerView" type="button" class="wide" style="margin-top:6px">보이저 뷰 (켜 둔 보이저가 보이게 뒤로 빼기)</button>
+      <div class="hint">행성을 클릭하면 정보, 더블클릭하면 따라가며 확대합니다.</div>
+    </section>
+
+    <section>
+      <h2>천체 정보</h2>
+      <div id="cards"></div>
+    </section>
+
+    <section>
+      <h2>혜성 <span class="hint" style="display:inline">(성간천체 3I/ATLAS 포함)</span></h2>
+      <div class="row"><button id="cometsAll" type="button">전체 켜기</button><button id="cometsNone" type="button">전체 끄기</button></div>
+      <details class="host" style="margin-top:6px"><summary id="cometSummary">혜성 목록</summary><div id="cometCards" class="cards-in"></div></details>
+    </section>
+
+    <section>
+      <h2>소행성·왜행성</h2>
+      <div class="row"><button id="astAll" type="button">전체 켜기</button><button id="astNone" type="button">전체 끄기</button></div>
+      <details class="host" style="margin-top:6px"><summary id="astSummary">소행성 목록</summary><div id="astCards" class="cards-in"></div></details>
+      <div class="card" style="margin-top:6px; cursor:default"><div class="name"><span>소행성대 (장식용)</span><span class="badge fictional">장식용</span></div>
+        <div class="stats">장식용, 실제 데이터 아님. 시각 연출을 위한 가짜 점 구름입니다(약 4,000개, 2.1~3.3 AU). 실제 소행성은 위 9개만 실제 궤도입니다.</div></div>
+    </section>
+
+    <section>
+      <h2>탐사선</h2>
+      <div id="vgCards"></div>
+      <div class="hint">위의 보이저 1호·2호 체크박스로 켭니다. 모델: NASA VTAD (쌍둥이 탐사선이라 같은 모델을 복제해 씁니다).</div>
+    </section>
+
+    <section>
+      <h2>위성 <span class="hint" style="display:inline">(행성에 가까이 가면 나타납니다)</span></h2>
+      <div id="moonCards"></div>
+    </section>
+  </aside>
+
+  <button id="panelToggle" type="button" title="패널 접기/펼치기">◀</button>
+
+  <main id="stage">
+    <div id="simDate"></div>
+    <div id="loading"><div id="loadingText">텍스처 불러오는 중…</div><div id="loadingBar"><div id="loadingFill"></div></div></div>
+    <div id="status"></div>
+    <div id="credits">Textures: Solar System Scope (CC BY 4.0), USGS Astrogeology / NASA, 일부 천체는 가상 텍스처 · 위치 계산: astronomy-engine, 위성·혜성·소행성 궤도: NASA JPL (Horizons, SBDB) — 위성·혜성·소행성 위치는 어림값 · 소행성대 점 구름은 장식용(실제 데이터 아님) · 보이저 3D 모델: NASA VTAD</div>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

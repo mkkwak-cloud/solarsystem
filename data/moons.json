@@ -1,0 +1,770 @@
+{
+ "_note": "JPL 평균 궤도요소는 궤도의 일반적 모양·방향을 나타내는 값이며 정밀 위치 계산용이 아니다(JPL 경고). 목성 4대 위성과 달은 astronomy-engine 으로 계산한다.",
+ "_sources": {
+  "orbit": "https://ssd.jpl.nasa.gov/api/horizons.api",
+  "mean_elements_table_reference_only": "https://ssd.jpl.nasa.gov/sats/elem/",
+  "physical": "https://ssd.jpl.nasa.gov/sats/phys_par/",
+  "retrieved": "2026-10-06"
+ },
+ "_definitions": {
+  "osc": "Horizons 기준일 궤도요소 (황도 J2000, 행성 중심). 위치는 기준일 부근에서 가장 정확하다."
+ },
+ "moons": [
+  {
+   "id": "moon",
+   "name_ko": "달",
+   "name": "Moon",
+   "planet": "earth",
+   "engine": "GeoMoon",
+   "osc": null,
+   "radius_km": 1737.4,
+   "gm_km3s2": 4902.8,
+   "jpl_mean_table": {
+    "frame": "ecliptic",
+    "epoch": "2000-01-01.5",
+    "a_km": 384400.0,
+    "e": 0.0554,
+    "w_deg": 318.15,
+    "M_deg": 135.27,
+    "i_deg": 5.16,
+    "node_deg": 125.08,
+    "P_days": 27.322,
+    "P_apsis_yr": 5.997,
+    "P_node_yr": 18.6,
+    "pole": null
+   }
+  },
+  {
+   "id": "phobos",
+   "name_ko": "포보스",
+   "name": "Phobos",
+   "planet": "mars",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 9379.523375687655,
+    "e": 0.01548814373890304,
+    "i_deg": 25.6472165423782,
+    "node_deg": 82.47012103691212,
+    "w_deg": 278.9809914285169,
+    "M_deg": 354.1263323711266,
+    "U_rate_deg_per_day": 1128.8448960444086,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 11.08,
+   "gm_km3s2": 0.0007087,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 9375.0,
+    "e": 0.015,
+    "w_deg": 216.3,
+    "M_deg": 189.7,
+    "i_deg": 1.1,
+    "node_deg": 169.2,
+    "P_days": 0.3187,
+    "P_apsis_yr": 1.1,
+    "P_node_yr": 2.3,
+    "pole": {
+     "ra_deg": 317.7,
+     "dec_deg": 52.9,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "deimos",
+   "name_ko": "데이모스",
+   "name": "Deimos",
+   "planet": "mars",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 23459.87454314556,
+    "e": 0.0002524676138979441,
+    "i_deg": 24.12225542521667,
+    "node_deg": 81.53238921905997,
+    "w_deg": 41.87896370212015,
+    "M_deg": 154.5825067852595,
+    "U_rate_deg_per_day": 285.16167785339235,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 6.2,
+   "gm_km3s2": 9.62e-05,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 23457.0,
+    "e": 0.0,
+    "w_deg": 0.0,
+    "M_deg": 205.0,
+    "i_deg": 1.8,
+    "node_deg": 54.3,
+    "P_days": 1.2625,
+    "P_apsis_yr": 0.0,
+    "P_node_yr": 56.2,
+    "pole": {
+     "ra_deg": 316.6,
+     "dec_deg": 53.5,
+     "tilt_deg": 0.9
+    }
+   }
+  },
+  {
+   "id": "io",
+   "name_ko": "이오",
+   "name": "Io",
+   "planet": "jupiter",
+   "engine": "io",
+   "osc": null,
+   "radius_km": 1821.49,
+   "gm_km3s2": 5959.91547,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 421800.0,
+    "e": 0.004,
+    "w_deg": 49.1,
+    "M_deg": 330.9,
+    "i_deg": 0.0,
+    "node_deg": 0.0,
+    "P_days": 1.762732,
+    "P_apsis_yr": 1.333,
+    "P_node_yr": 0.0,
+    "pole": {
+     "ra_deg": 268.1,
+     "dec_deg": 64.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "europa",
+   "name_ko": "유로파",
+   "name": "Europa",
+   "planet": "jupiter",
+   "engine": "europa",
+   "osc": null,
+   "radius_km": 1560.8,
+   "gm_km3s2": 3202.7121,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 671100.0,
+    "e": 0.009,
+    "w_deg": 45.0,
+    "M_deg": 345.4,
+    "i_deg": 0.5,
+    "node_deg": 184.0,
+    "P_days": 3.525463,
+    "P_apsis_yr": 1.394,
+    "P_node_yr": 30.202,
+    "pole": {
+     "ra_deg": 268.1,
+     "dec_deg": 64.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "ganymede",
+   "name_ko": "가니메데",
+   "name": "Ganymede",
+   "planet": "jupiter",
+   "engine": "ganymede",
+   "osc": null,
+   "radius_km": 2631.2,
+   "gm_km3s2": 9887.83275,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 1070400.0,
+    "e": 0.001,
+    "w_deg": 198.3,
+    "M_deg": 324.8,
+    "i_deg": 0.2,
+    "node_deg": 58.5,
+    "P_days": 7.155588,
+    "P_apsis_yr": 68.301,
+    "P_node_yr": 137.812,
+    "pole": {
+     "ra_deg": 268.2,
+     "dec_deg": 64.6,
+     "tilt_deg": 0.1
+    }
+   }
+  },
+  {
+   "id": "callisto",
+   "name_ko": "칼리스토",
+   "name": "Callisto",
+   "planet": "jupiter",
+   "engine": "callisto",
+   "osc": null,
+   "radius_km": 2410.3,
+   "gm_km3s2": 7179.2834,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 1882700.0,
+    "e": 0.007,
+    "w_deg": 43.8,
+    "M_deg": 87.4,
+    "i_deg": 0.3,
+    "node_deg": 309.1,
+    "P_days": 16.69044,
+    "P_apsis_yr": 277.921,
+    "P_node_yr": 577.264,
+    "pole": {
+     "ra_deg": 268.7,
+     "dec_deg": 64.8,
+     "tilt_deg": 0.4
+    }
+   }
+  },
+  {
+   "id": "mimas",
+   "name_ko": "미마스",
+   "name": "Mimas",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 186037.4342353911,
+    "e": 0.022349556403562,
+    "i_deg": 28.27684544014621,
+    "node_deg": 172.8266654639916,
+    "w_deg": 164.3962955069052,
+    "M_deg": 346.8991676582138,
+    "U_rate_deg_per_day": 382.00257848447797,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 198.2,
+   "gm_km3s2": 2.50349,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 186000.0,
+    "e": 0.02,
+    "w_deg": 160.4,
+    "M_deg": 275.3,
+    "i_deg": 1.6,
+    "node_deg": 66.2,
+    "P_days": 0.942422,
+    "P_apsis_yr": 0.493,
+    "P_node_yr": 0.986,
+    "pole": {
+     "ra_deg": 40.6,
+     "dec_deg": 83.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "enceladus",
+   "name_ko": "엔셀라두스",
+   "name": "Enceladus",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 238411.1482289367,
+    "e": 0.004940303998077492,
+    "i_deg": 28.04356820474974,
+    "node_deg": 169.5299515123835,
+    "w_deg": 176.1613678593647,
+    "M_deg": 290.0628618440796,
+    "U_rate_deg_per_day": 262.7319368230401,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 252.1,
+   "gm_km3s2": 7.21037,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 238400.0,
+    "e": 0.005,
+    "w_deg": 119.5,
+    "M_deg": 57.0,
+    "i_deg": 0.0,
+    "node_deg": 0.0,
+    "P_days": 1.370218,
+    "P_apsis_yr": 2.916,
+    "P_node_yr": 0.0,
+    "pole": {
+     "ra_deg": 40.6,
+     "dec_deg": 83.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "tethys",
+   "name_ko": "테티스",
+   "name": "Tethys",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 294977.1511972099,
+    "e": 0.001073621967627233,
+    "i_deg": 28.14756224723801,
+    "node_deg": 171.8324206667784,
+    "w_deg": 135.4993217467809,
+    "M_deg": 5.020944522930985,
+    "U_rate_deg_per_day": 190.69794130971954,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 531.1,
+   "gm_km3s2": 41.21353,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 295000.0,
+    "e": 0.001,
+    "w_deg": 335.3,
+    "M_deg": 0.0,
+    "i_deg": 1.1,
+    "node_deg": 273.0,
+    "P_days": 1.887802,
+    "P_apsis_yr": 0.005,
+    "P_node_yr": 4.982,
+    "pole": {
+     "ra_deg": 40.6,
+     "dec_deg": 83.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "dione",
+   "name_ko": "디오네",
+   "name": "Dione",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 377656.3370457823,
+    "e": 0.002587030634361496,
+    "i_deg": 28.02557541567261,
+    "node_deg": 169.5494064538484,
+    "w_deg": 286.3366975154934,
+    "M_deg": 44.56716242625697,
+    "U_rate_deg_per_day": 131.53492721526922,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 561.4,
+   "gm_km3s2": 73.11607,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 377700.0,
+    "e": 0.002,
+    "w_deg": 116.0,
+    "M_deg": 212.0,
+    "i_deg": 0.0,
+    "node_deg": 0.0,
+    "P_days": 2.736916,
+    "P_apsis_yr": 11.698,
+    "P_node_yr": 0.0,
+    "pole": {
+     "ra_deg": 40.6,
+     "dec_deg": 83.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "rhea",
+   "name_ko": "레아",
+   "name": "Rhea",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 527236.6266876021,
+    "e": 0.0007776992391753706,
+    "i_deg": 28.27355623222358,
+    "node_deg": 169.9692221681289,
+    "w_deg": 180.7544183283726,
+    "M_deg": 121.2741898604134,
+    "U_rate_deg_per_day": 79.69003714459404,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 763.5,
+   "gm_km3s2": 153.94175,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 527200.0,
+    "e": 0.001,
+    "w_deg": 44.3,
+    "M_deg": 31.5,
+    "i_deg": 0.3,
+    "node_deg": 133.7,
+    "P_days": 4.517503,
+    "P_apsis_yr": 33.939,
+    "P_node_yr": 35.775,
+    "pole": {
+     "ra_deg": 40.6,
+     "dec_deg": 83.5,
+     "tilt_deg": 0.0
+    }
+   }
+  },
+  {
+   "id": "titan",
+   "name_ko": "타이탄",
+   "name": "Titan",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 1221961.065215633,
+    "e": 0.028660377798556,
+    "i_deg": 27.70563888159194,
+    "node_deg": 169.0807108311805,
+    "w_deg": 178.4504372507766,
+    "M_deg": 159.4855385692647,
+    "U_rate_deg_per_day": 22.576991163367776,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 2574.76,
+   "gm_km3s2": 8978.1371,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 1221900.0,
+    "e": 0.029,
+    "w_deg": 78.3,
+    "M_deg": 11.7,
+    "i_deg": 0.3,
+    "node_deg": 78.6,
+    "P_days": 15.945448,
+    "P_apsis_yr": 346.68,
+    "P_node_yr": 687.37,
+    "pole": {
+     "ra_deg": 36.4,
+     "dec_deg": 84.0,
+     "tilt_deg": 0.6
+    }
+   }
+  },
+  {
+   "id": "iapetus",
+   "name_ko": "이아페투스",
+   "name": "Iapetus",
+   "planet": "saturn",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 3558464.459670248,
+    "e": 0.02860543729491316,
+    "i_deg": 16.97428312383516,
+    "node_deg": 138.86544576696,
+    "w_deg": 233.5322991810311,
+    "M_deg": 283.4295786386367,
+    "U_rate_deg_per_day": 4.5380403825657405,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 734.3,
+   "gm_km3s2": 120.51511,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 3561700.0,
+    "e": 0.028,
+    "w_deg": 254.5,
+    "M_deg": 74.8,
+    "i_deg": 7.6,
+    "node_deg": 86.5,
+    "P_days": 79.331002,
+    "P_apsis_yr": 1662.9,
+    "P_node_yr": 3130.302,
+    "pole": {
+     "ra_deg": 288.7,
+     "dec_deg": 78.9,
+     "tilt_deg": 14.8
+    }
+   }
+  },
+  {
+   "id": "ariel",
+   "name_ko": "아리엘",
+   "name": "Ariel",
+   "planet": "uranus",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 190946.7899527016,
+    "e": 0.000402555775046229,
+    "i_deg": 97.7179697937279,
+    "node_deg": 167.6658484394319,
+    "w_deg": 238.1018665997609,
+    "M_deg": 98.42628672361879,
+    "U_rate_deg_per_day": 142.83563574594282,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 578.9,
+   "gm_km3s2": 83.5,
+   "jpl_mean_table": {
+    "frame": "equatorial",
+    "epoch": "2000-01-01.5",
+    "a_km": 190929.0,
+    "e": 0.001,
+    "w_deg": 9.6,
+    "M_deg": 193.5,
+    "i_deg": 0.0,
+    "node_deg": 0.0,
+    "P_days": 2.520379,
+    "P_apsis_yr": 28.901,
+    "P_node_yr": 0.0,
+    "pole": null
+   }
+  },
+  {
+   "id": "umbriel",
+   "name_ko": "움브리엘",
+   "name": "Umbriel",
+   "planet": "uranus",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 265978.8768666784,
+    "e": 0.003325567203465013,
+    "i_deg": 97.71436102677481,
+    "node_deg": 167.7252674370541,
+    "w_deg": 58.27893295379756,
+    "M_deg": 91.1731141258933,
+    "U_rate_deg_per_day": 86.8688763872239,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 584.7,
+   "gm_km3s2": 85.1,
+   "jpl_mean_table": {
+    "frame": "equatorial",
+    "epoch": "2000-01-01.5",
+    "a_km": 265986.0,
+    "e": 0.004,
+    "w_deg": 183.4,
+    "M_deg": 253.0,
+    "i_deg": 0.1,
+    "node_deg": 174.8,
+    "P_days": 4.144177,
+    "P_apsis_yr": 64.126,
+    "P_node_yr": 129.745,
+    "pole": null
+   }
+  },
+  {
+   "id": "titania",
+   "name_ko": "티타니아",
+   "name": "Titania",
+   "planet": "uranus",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 436300.4176273283,
+    "e": 0.002044394880246801,
+    "i_deg": 97.76215505853656,
+    "node_deg": 167.643654036688,
+    "w_deg": 280.7028699249302,
+    "M_deg": 285.8746495335672,
+    "U_rate_deg_per_day": 41.351417137701475,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 788.9,
+   "gm_km3s2": 226.9,
+   "jpl_mean_table": {
+    "frame": "equatorial",
+    "epoch": "2000-01-01.5",
+    "a_km": 436298.0,
+    "e": 0.002,
+    "w_deg": 184.0,
+    "M_deg": 68.1,
+    "i_deg": 0.1,
+    "node_deg": 29.5,
+    "P_days": 8.705869,
+    "P_apsis_yr": 579.928,
+    "P_node_yr": 1644.649,
+    "pole": null
+   }
+  },
+  {
+   "id": "oberon",
+   "name_ko": "오베론",
+   "name": "Oberon",
+   "planet": "uranus",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 583437.802880793,
+    "e": 0.002371763522867502,
+    "i_deg": 97.90573408170677,
+    "node_deg": 167.7083033675239,
+    "w_deg": 173.7115092660697,
+    "M_deg": 192.226977576763,
+    "U_rate_deg_per_day": 26.73948015162992,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 761.4,
+   "gm_km3s2": 205.3,
+   "jpl_mean_table": {
+    "frame": "equatorial",
+    "epoch": "2000-01-01.5",
+    "a_km": 583511.0,
+    "e": 0.002,
+    "w_deg": 132.2,
+    "M_deg": 143.6,
+    "i_deg": 0.1,
+    "node_deg": 76.8,
+    "P_days": 13.463237,
+    "P_apsis_yr": 158.604,
+    "P_node_yr": 192.798,
+    "pole": null
+   }
+  },
+  {
+   "id": "miranda",
+   "name_ko": "미란다",
+   "name": "Miranda",
+   "planet": "uranus",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 129874.1206780571,
+    "e": 0.001302360017887198,
+    "i_deg": 98.02128290791889,
+    "node_deg": 163.1891076851252,
+    "w_deg": 69.24388580197704,
+    "M_deg": 95.16600123684657,
+    "U_rate_deg_per_day": 254.690908864976,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 235.8,
+   "gm_km3s2": 4.3,
+   "jpl_mean_table": {
+    "frame": "equatorial",
+    "epoch": "2000-01-01.5",
+    "a_km": 129846.0,
+    "e": 0.001,
+    "w_deg": 154.8,
+    "M_deg": 73.0,
+    "i_deg": 4.4,
+    "node_deg": 100.9,
+    "P_days": 1.413479,
+    "P_apsis_yr": 8.939,
+    "P_node_yr": 17.787,
+    "pole": null
+   }
+  },
+  {
+   "id": "triton",
+   "name_ko": "트리톤",
+   "name": "Triton",
+   "planet": "neptune",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 354768.1192749699,
+    "e": 0.0001325480445140655,
+    "i_deg": 129.1267082680986,
+    "node_deg": 222.8630769550072,
+    "w_deg": 120.4122350017869,
+    "M_deg": 69.54025812526078,
+    "U_rate_deg_per_day": 61.257829715294925,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 1352.6,
+   "gm_km3s2": 1428.49546,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 354800.0,
+    "e": 0.0,
+    "w_deg": 0.0,
+    "M_deg": 63.0,
+    "i_deg": 157.3,
+    "node_deg": 178.1,
+    "P_days": 5.876994,
+    "P_apsis_yr": 0.0,
+    "P_node_yr": 340.379,
+    "pole": {
+     "ra_deg": 299.8,
+     "dec_deg": 43.1,
+     "tilt_deg": 0.4
+    }
+   }
+  },
+  {
+   "id": "proteus",
+   "name_ko": "프로테우스",
+   "name": "Proteus",
+   "planet": "neptune",
+   "engine": null,
+   "osc": {
+    "epoch": "2026-10-06 12:00 TDB",
+    "epoch_jd": 2461320.0,
+    "frame": "ecliptic J2000 (ICRF), 행성 중심",
+    "a_km": 117674.6955360596,
+    "e": 0.0004684049152798578,
+    "i_deg": 29.04845601983688,
+    "node_deg": 48.72502960110564,
+    "w_deg": 54.5830410444281,
+    "M_deg": 79.5303860642424,
+    "U_rate_deg_per_day": 320.76558880202833,
+    "note": "U=ω+M 의 평균 증가율. 모델은 ω, Ω, i, e, a 를 고정하고 M 만 이 속도로 진행시킨다."
+   },
+   "radius_km": 208.0,
+   "gm_km3s2": 2.58342,
+   "jpl_mean_table": {
+    "frame": "Laplace",
+    "epoch": "2000-01-01.5",
+    "a_km": 117600.0,
+    "e": 0.0,
+    "w_deg": 0.0,
+    "M_deg": 276.8,
+    "i_deg": 0.0,
+    "node_deg": 0.0,
+    "P_days": 1.122315,
+    "P_apsis_yr": 0.0,
+    "P_node_yr": 0.0,
+    "pole": {
+     "ra_deg": 299.8,
+     "dec_deg": 42.6,
+     "tilt_deg": 0.9
+    }
+   }
+  }
+ ]
+}
