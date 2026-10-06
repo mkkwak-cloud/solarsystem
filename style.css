@@ -89,3 +89,5 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
 
 .label.voyager { font-size: 11.5px; color: #ffe29a; }
 .label.voyager.sel { color: var(--accent); }
+
+.maker { color: #9fb4d4; font-weight: 600; letter-spacing: .03em; }
