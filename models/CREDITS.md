@@ -15,3 +15,12 @@
 ## 궤적 데이터 (data/voyager.json)
 - 출처: JPL Horizons API (https://ssd.jpl.nasa.gov/api/horizons.api), 천체 -31(보이저 1호), -32(보이저 2호). scripts/fetch-voyager.js 로 생성.
 - 30일 간격 위치·속도, 1977년 발사 직후부터 2060-01-01 까지. 그 이후는 마지막 속도로 직선 외삽하고 화면에 "외삽값" 표기.
+
+## models/sat/*.glb (국내 위성 추적 페이지의 "대표 모형")
+- 출처: NASA 3D Resources (https://github.com/nasa/NASA-3D-Resources, 저장소 설명: "free and without copyright"). 2026-10-08 받음.
+  - cubesat2u.glb ← CubeSat - 2 RU Generic (큐브위성 일반 모형)
+  - goes.glb ← Geostationary Operational Environmental Satellites (GOES, 정지궤도 위성 대표)
+  - landsat8.glb ← Landsat 8 (지구 관측 위성 대표)
+  - lro.glb ← Lunar Reconnaissance Orbiter (A) (달 궤도선 대표, 다누리 자리)
+- 국내 위성(아리랑·천리안·다누리 등)의 공개 3D 모델은 찾지 못했다. 그래서 같은 종류의 NASA 모델을 "대표 모형"으로 쓰고, 화면 카드에 "실제 모습이 아님"을 적는다. 그 밖의 위성은 본체+날개의 간단한 도형.
+- NASA 가 상품·서비스를 보증하는 것처럼 보이지 않게 하고 NASA 로고는 쓰지 않는다.

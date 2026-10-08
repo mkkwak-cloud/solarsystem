@@ -121,3 +121,10 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
   .label, .label.moon, .label.comet, .label.asteroid, .label.voyager { font-size: 10px; }
   #loading { width: 78%; }
 }
+
+/* 페이지 전환 버튼: 가려는 쪽의 색으로 칠해 한눈에 구분 */
+.navbtn { display: block; text-align: center; font-weight: 700; font-size: 13px; text-decoration: none; padding: 9px 8px; border-radius: 8px; margin: 0 0 8px; color: #fff; }
+.navbtn.to-sat { background: #e8590c; border: 1px solid #ff922b; }
+.navbtn.to-sat:hover { background: #f76707; }
+.navbtn.to-solar { background: #6741d9; border: 1px solid #9775fa; }
+.navbtn.to-solar:hover { background: #7048e8; }

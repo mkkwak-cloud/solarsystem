@@ -2,6 +2,7 @@
 // 장면 좌표: 지구 관성좌표 (x, y, z) -> 화면 (x, z, -y)  (북쪽이 +Y). 지구는 가운데에 있고 자전하며, 위성·달은 관성좌표에서 움직인다.
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createWorld } from '../scene/world.js';
 import { loadPlainTexture } from '../scene/textures.js';
 import { Clock } from '../sim/clock.js';
@@ -150,7 +151,7 @@ function setSpeed(m) {
   $('speedHint').textContent = m === 1 ? "1x = 현실과 같은 속도" : `현실 1초 = 시뮬레이션 ${m.toLocaleString('en-US')}초`;
 }
 for (const r of document.querySelectorAll('input[name=spd]')) r.addEventListener('change', () => { if (r.checked) setSpeed(Number(r.value)); });
-setSpeed(1);
+setSpeed(10);
 const quickPause = $('quickPause'), pauseBtn = $('pauseBtn');
 function togglePause() { clock.paused = !clock.paused; pauseBtn.textContent = clock.paused ? '재생' : '일시정지'; quickPause.textContent = clock.paused ? '▶' : '⏸'; }
 pauseBtn.addEventListener('click', togglePause); quickPause.addEventListener('click', togglePause);
@@ -325,7 +326,7 @@ function launchText(s) {
 }
 function cardHtml(s) {
   if (s.isDanuri) {
-    return `<h3>${esc(DANURI.ko)}</h3><div class="en">${esc(DANURI.en)}</div>
+    return `<button type="button" class="closex" data-act="close" title="닫기">✕</button><h3>${esc(DANURI.ko)}</h3><div class="en">${esc(DANURI.en)}</div>
       <table>
         <tr><td>소유·운영</td><td>${esc(DANURI.owner)}</td></tr>
         <tr><td>용도</td><td>${esc(DANURI.use)}</td></tr>
@@ -336,11 +337,12 @@ function cardHtml(s) {
         <tbody class="live"><tr><td>달 중심에서</td><td id="lv1">-</td></tr><tr><td>달 표면 위</td><td id="lv2">-</td></tr><tr><td>달에 대한 속도</td><td id="lv3">-</td></tr></tbody>
       </table>
       <div class="note">${esc(DANURI.extra)}<br>위치: NASA JPL Horizons(번호 -155) 자료. 지구 위성용 궤도 정보(TLE)는 쓰지 않습니다. 자료가 있는 기간: 2026-09-01 ~ 2027-05-06.</div>
+      <div class="modelnote">${esc(modelNote(s))}</div>
       <div class="btns"><button type="button" data-act="fly">달 곁으로 가기</button></div>`;
   }
   const ops = OPS[s.ops] ?? ['확인 중', 'off'];
   const g = GROUPS[s.group];
-  return `<h3>${esc(s.ko)}</h3><div class="en">${esc(s.name)}</div>
+  return `<button type="button" class="closex" data-act="close" title="닫기">✕</button><h3>${esc(s.ko)}</h3><div class="en">${esc(s.name)}</div>
     <table>
       <tr><td>분류</td><td><span class="gdot" style="background:${g.color}"></span>${esc(g.name)}</td></tr>
       <tr><td>소유·운영</td><td>${esc(s.info.owner ?? '확인 중')}</td></tr>
@@ -352,10 +354,14 @@ function cardHtml(s) {
       <tbody class="live"><tr><td>지금 위치</td><td id="lv1">-</td></tr><tr><td>지금 고도</td><td id="lv2">-</td></tr><tr><td>지금 속도</td><td id="lv3">-</td></tr></tbody>
       <tr><td>궤도 정보</td><td id="tleAge">-</td></tr>
     </table>
+    <div class="modelnote">${esc(modelNote(s))}</div>
     <div class="btns"><button type="button" data-act="fly">따라가기</button><button type="button" data-act="stop">따라가기 해제</button></div>`;
 }
 function showCard(s) {
   infoCard.innerHTML = cardHtml(s);
+  infoCard.hidden = false;
+  infoCard.scrollTop = 0;
+  infoCard.querySelector('[data-act=close]')?.addEventListener('click', () => selectNone(true));
   infoCard.querySelector('[data-act=fly]')?.addEventListener('click', () => { flyToItem(s); closePanelOnMobile(); });
   infoCard.querySelector('[data-act=stop]')?.addEventListener('click', () => { followObj = null; approach = null; updateFollowButton(); });
   updateFollowButton();
@@ -371,20 +377,21 @@ function selectItem(s, { fly = false } = {}) {
   for (const x of sats) x.label.element.classList.toggle('sel', x === s);
   danuri.label.element.classList.toggle('sel', s === danuri);
   showCard(s);
+  setSelectedModel(s);
   rebuildSelectedOrbit();
   if (s.isDanuri) { updateDanuriTrail(true); }
   if (fly) flyToItem(s);
 }
 function selectNone(keepCamera) {
   selected = null; selOrbit.visible = false; selRing.visible = false;
-  infoCard.innerHTML = '<div class="hint">지도에서 위성을 누르거나 아래 목록에서 고르세요.</div>';
+  infoCard.hidden = true; infoCard.innerHTML = ''; setSelectedModel(null);
   for (const el of document.querySelectorAll('.satitem.sel')) el.classList.remove('sel');
   for (const x of sats) x.label.element.classList.remove('sel');
   if (!keepCamera) { followObj = null; approach = null; }
 }
 function flyToItem(s) {
   if (s.isDanuri) { flyTo('moon', 0.9, moonPos.clone().normalize()); lastTrailMs = -1e18; return; }
-  flyTo(s, s.isGeo ? 3.0 : 0.5, s.pos.clone());
+  flyTo(s, s.isGeo ? 1.2 : 0.5, s.pos.clone());
 }
 let lastLiveMs = 0;
 function updateLive(force) {
@@ -534,6 +541,54 @@ $('refreshBtn').addEventListener('click', async () => {
   $('loading').classList.add('done');
 })();
 
+// ---------- 위성 3D 모형 (선택한 위성 하나만, 보기 쉽게 크게) ----------
+// 국내 위성의 공개 3D 모델은 없어서 NASA 공개 모델 중 같은 종류를 대표 모형으로 쓴다. 그 밖에는 본체+날개 도형. (출처: models/CREDITS.md)
+const MODEL_FILES = { cube: 'cubesat2u.glb', geo: 'goes.glb', obs: 'landsat8.glb', danuri: 'lro.glb' };
+const MODEL_LABEL = { cube: 'NASA 일반 큐브위성(2U) 모형', geo: 'NASA 정지궤도 위성(GOES) 모형', obs: 'NASA 지구관측위성(Landsat 8) 모형', danuri: 'NASA 달 궤도선(LRO) 모형' };
+function modelKey(s) { return s.isDanuri ? 'danuri' : MODEL_FILES[s.group] ? s.group : null; }
+function modelNote(s) {
+  const k = modelKey(s);
+  return k ? `3D 모형: ${MODEL_LABEL[k]} — 같은 종류의 대표 모형이며 실제 모습이 아닙니다. 크기도 보기 쉽게 키웠습니다.` : '3D 모형: 간단한 도형(본체+날개) — 실제 모습이 아닙니다. 크기도 보기 쉽게 키웠습니다.';
+}
+const modelHolder = new THREE.Group(); modelHolder.visible = false; scene.add(modelHolder);
+const modelCache = new Map();
+function normalize(obj) {                       // 가장 긴 변이 1이 되도록 크기를 맞추고 가운데로
+  const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const g = new THREE.Group(); obj.position.sub(c); g.add(obj); g.scale.setScalar(1 / Math.max(size.x, size.y, size.z, 1e-6));
+  const w = new THREE.Group(); w.add(g); return w;
+}
+function genericModel(color) {
+  const g = new THREE.Group(), mat = new THREE.MeshStandardMaterial({ color: 0xcfd6e0, metalness: 0.5, roughness: 0.5 });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.34, 0.5), mat));
+  const pm = new THREE.MeshStandardMaterial({ color: 0x1d3f8f, metalness: 0.3, roughness: 0.4, side: THREE.DoubleSide });
+  for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.02, 0.36), pm); p.position.set(sx * 0.5, 0, 0); g.add(p); }
+  const tag = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.05, 0.52), new THREE.MeshStandardMaterial({ color: new THREE.Color(color) })); tag.position.y = 0.2; g.add(tag);
+  return normalize(g);
+}
+function getModel(key, color) {                 // Promise<Object3D 복제본>
+  if (!key) return Promise.resolve(genericModel(color));
+  if (!modelCache.has(key)) modelCache.set(key, new Promise((res) => new GLTFLoader().load('models/sat/' + MODEL_FILES[key], (gl) => res(normalize(gl.scene)), undefined, () => res(null))));
+  return modelCache.get(key).then((m) => (m ? m.clone(true) : genericModel(color)));
+}
+let modelFor = null;
+function setSelectedModel(s) {
+  modelFor = s; modelHolder.visible = false;
+  for (const c of [...modelHolder.children]) modelHolder.remove(c);
+  if (!s) return;
+  getModel(modelKey(s), GROUPS[s.group]?.color ?? '#ffffff').then((m) => { if (modelFor === s) { modelHolder.add(m); modelHolder.visible = true; } });
+}
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+function updateModel() {
+  const s = modelFor; if (!s) return;
+  const ok = s.isDanuri ? danuri.valid && opts.moon : s.visible;
+  if (!ok) { modelHolder.visible = false; return; }
+  const dist = camera.position.distanceTo(s.pos);
+  modelHolder.position.copy(s.pos);
+  modelHolder.scale.setScalar(s.isDanuri ? Math.min(dist * 0.1, 0.03) : Math.min(dist * 0.12, s.isGeo ? 0.15 : 0.06));
+  const radial = s.isDanuri ? s.pos.clone().sub(moonPos) : s.pos.clone();
+  if (radial.lengthSq() > 0) modelHolder.quaternion.setFromUnitVectors(Y_AXIS, radial.normalize());
+}
+
 // ---------- 반복 ----------
 const dateEl = $('simDate'), statusEl = $('status');
 let lastDateText = '', last = performance.now(), statusAt = 0;
@@ -576,6 +631,7 @@ function frame(now) {
   selRing.visible = !!sp;
   if (sp) selRing.position.copy(sp);
 
+  updateModel();
   updateLive(false);
   const d = date, t = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   if (t !== lastDateText) { dateEl.textContent = t; lastDateText = t; }
@@ -584,5 +640,6 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 updateEnvironment(clock.date);
+invalidateOrbits();   // 첫 프레임에서 위성 위치가 계산된 뒤 궤도선을 새로 그리게 함
 requestAnimationFrame(frame);
 window.__sat = { sats, danuri, clock, camera, controls, selectItem, flyToItem, viewMoon, viewEarth };   // 시험용
