@@ -550,7 +550,7 @@ function modelNote(s) {
   const k = modelKey(s);
   return k ? `3D 모형: ${MODEL_LABEL[k]} — 같은 종류의 대표 모형이며 실제 모습이 아닙니다. 크기도 보기 쉽게 키웠습니다.` : '3D 모형: 간단한 도형(본체+날개) — 실제 모습이 아닙니다. 크기도 보기 쉽게 키웠습니다.';
 }
-const modelHolder = new THREE.Group(); modelHolder.visible = false; scene.add(modelHolder);
+const modelRoot = new THREE.Group(); scene.add(modelRoot);   // 모형들을 담는 그룹
 const modelCache = new Map();
 function normalize(obj) {                       // 가장 긴 변이 1이 되도록 크기를 맞추고 가운데로
   const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
@@ -570,23 +570,43 @@ function getModel(key, color) {                 // Promise<Object3D 복제본>
   if (!modelCache.has(key)) modelCache.set(key, new Promise((res) => new GLTFLoader().load('models/sat/' + MODEL_FILES[key], (gl) => res(normalize(gl.scene)), undefined, () => res(null))));
   return modelCache.get(key).then((m) => (m ? m.clone(true) : genericModel(color)));
 }
-let modelFor = null;
-function setSelectedModel(s) {
-  modelFor = s; modelHolder.visible = false;
-  for (const c of [...modelHolder.children]) modelHolder.remove(c);
-  if (!s) return;
-  getModel(modelKey(s), GROUPS[s.group]?.color ?? '#ffffff').then((m) => { if (modelFor === s) { modelHolder.add(m); modelHolder.visible = true; } });
+const models = new Map();     // 위성 -> { group, loaded }  (가까이 오거나 선택했을 때 처음 만든다)
+let modelFor = null;               // 선택한 위성 (멀리서도 항상 보이게 키움)
+function setSelectedModel(s) { modelFor = s; }
+function ensureModel(s) {
+  let e = models.get(s);
+  if (e) return e;
+  e = { group: new THREE.Group(), loaded: false };
+  e.group.visible = false; modelRoot.add(e.group); models.set(s, e);
+  getModel(modelKey(s), GROUPS[s.group]?.color ?? '#ffffff').then((m) => { e.group.add(m); e.loaded = true; });
+  return e;
 }
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
-function updateModel() {
-  const s = modelFor; if (!s) return;
-  const ok = s.isDanuri ? danuri.valid && opts.moon : s.visible;
-  if (!ok) { modelHolder.visible = false; return; }
-  const dist = camera.position.distanceTo(s.pos);
-  modelHolder.position.copy(s.pos);
-  modelHolder.scale.setScalar(s.isDanuri ? Math.min(dist * 0.1, 0.03) : Math.min(dist * 0.12, s.isGeo ? 0.15 : 0.06));
+const NEAR_MODEL = 2.5;            // 카메라가 이 거리(지구 반지름 단위, 약 16,000 km) 안이면 그 위성에도 모형을 보인다
+// 크기: 멀 때는 거리에 비례해 항상 보이게, 가까이 가면 고정 크기(확대할수록 커 보임)
+function showModel(s, dist, factor) {
+  const e = ensureModel(s);
+  if (!e.loaded) return;
+  e.group.visible = true;
+  e.group.position.copy(s.pos);
+  e.group.scale.setScalar(Math.max(dist * factor, s.isDanuri ? 0.012 : 0.02));
   const radial = s.isDanuri ? s.pos.clone().sub(moonPos) : s.pos.clone();
-  if (radial.lengthSq() > 0) modelHolder.quaternion.setFromUnitVectors(Y_AXIS, radial.normalize());
+  if (radial.lengthSq() > 0) e.group.quaternion.setFromUnitVectors(Y_AXIS, radial.normalize());
+}
+function updateModels() {
+  for (const e of models.values()) e.group.visible = false;
+  const cand = [];
+  for (const s of sats) {
+    if (!s.visible) continue;
+    const d = camera.position.distanceTo(s.pos);
+    if (s === modelFor || (d < NEAR_MODEL && !occludedByEarth(s.pos))) cand.push([d, s]);
+  }
+  cand.sort((x, y) => x[0] - y[0]);
+  for (const [d, s] of cand.slice(0, 12)) showModel(s, d, s === modelFor ? 0.06 : 0.05);
+  if (danuri.valid && opts.moon) {
+    const d = camera.position.distanceTo(danuri.pos);
+    if (danuri === modelFor || d < 3) showModel(danuri, d, 0.05);
+  }
 }
 
 // ---------- 반복 ----------
@@ -631,7 +651,7 @@ function frame(now) {
   selRing.visible = !!sp;
   if (sp) selRing.position.copy(sp);
 
-  updateModel();
+  updateModels();
   updateLive(false);
   const d = date, t = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   if (t !== lastDateText) { dateEl.textContent = t; lastDateText = t; }
