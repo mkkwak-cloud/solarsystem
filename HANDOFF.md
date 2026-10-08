@@ -9,7 +9,7 @@
 ## 현재 상태 (2026-10-06)
 - M0~M7 완료 (PRD 수락 기준 13개 모두 통과, plan/phase-1/04-검증.md).
 - 배포: GitHub 저장소 https://github.com/mkkwak-cloud/solarsystem (공개, main), 실제 주소(GitHub Pages) https://mkkwak-cloud.github.io/solarsystem/ — 공개 주소에서 동작 확인(응답 82개 모두 정상, 오류 없음). 첫 커밋 ec38ff5 "시작". 이후 변경은 사용자가 "cmt" 하면 커밋·푸시하면 Pages 가 자동 갱신(1분 내외).
-- 표시 옵션 시작값: 궤도·이름·행성 자전·위성만 켜짐(나머지 꺼짐). 커밋은 아직 안 함 ("cmt" 대기).
+- 표시 옵션 시작값: 궤도·이름·행성 자전·위성·혜성·소행성(9개)이 켜짐(나머지 꺼짐, 2026-10-08 혜성·소행성 추가). 커밋은 아직 안 함 ("cmt" 대기).
 - 실행: 프로젝트 폴더에서 `py -m http.server 8000` → http://localhost:8000
 - 구현: index.html, style.css, vendor/(three.js 0.160, astronomy-engine 2.1.19), src/{data,sim,scene,ui}, src/main.js, data/moons.json
 - M1: 행성 8개·태양, 토성 고리, 궤도선, 시간·날짜, 좌측 패널, 정보 카드. (배속 1x = 현실 1초에 1일, 기본 10x — 제가 정한 정의)
