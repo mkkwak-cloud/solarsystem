@@ -1,5 +1,10 @@
 # HANDOFF
 
+## 2026-10-08 추가: 국내 위성 추적 페이지 (phase-2)
+- satellites.html (태양계 페이지와 상호 링크). 국내 위성 66개(CelesTrak) + 다누리(JPL Horizons -155). 위성 클릭/목록 → 정보 카드(이름·소유·용도·발사·궤도·실시간 위치). 상세: plan/phase-2/02-구현.md
+- 시험: puppeteer(Edge)로 클릭 선택·목록 선택·달 보기·폰 폭 확인함. 커밋 안 함("cmt" 대기). 아직 GitHub Pages 에 안 올림.
+- 다음 후보: 누리호 5차 번호 올라오면 `node scripts/fetch-korean-sats.js` 재실행, info.js 의 "확인 중" 보강, 다누리 자료(2027-05-06 끝) 갱신.
+
 ## 현재 상태 (2026-10-06)
 - M0~M7 완료 (PRD 수락 기준 13개 모두 통과, plan/phase-1/04-검증.md).
 - 배포: GitHub 저장소 https://github.com/mkkwak-cloud/solarsystem (공개, main), 실제 주소(GitHub Pages) https://mkkwak-cloud.github.io/solarsystem/ — 공개 주소에서 동작 확인(응답 82개 모두 정상, 오류 없음). 첫 커밋 ec38ff5 "시작". 이후 변경은 사용자가 "cmt" 하면 커밋·푸시하면 Pages 가 자동 갱신(1분 내외).

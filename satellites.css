@@ -1,0 +1,33 @@
+/* 국내 위성 추적 페이지 전용 보충 스타일 (공통 스타일은 style.css) */
+.navlink { display: inline-block; color: var(--accent); font-size: 12px; text-decoration: none; margin: -6px 0 4px; }
+.navlink:hover { text-decoration: underline; }
+input[type=search] { width: 100%; background: #0f1a30; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px; font: inherit; }
+.seg span { padding: 6px 0; font-size: 12px; }
+
+.infocard { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #0d1527; }
+.infocard h3 { margin: 0 0 2px; font-size: 15px; color: var(--accent); }
+.infocard .en { color: var(--dim); font-size: 11.5px; margin-bottom: 6px; }
+.infocard table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.infocard td { padding: 3px 0; vertical-align: top; line-height: 1.45; }
+.infocard td:first-child { color: var(--dim); width: 74px; white-space: nowrap; padding-right: 8px; }
+.infocard .live td { color: #bfe3ff; }
+.infocard .note { margin-top: 8px; color: var(--dim); font-size: 11.5px; line-height: 1.5; }
+.infocard .btns { display: flex; gap: 6px; margin-top: 8px; }
+.infocard .btns button { flex: 1; padding: 6px 4px; font-size: 12px; }
+
+.badge.on { color: #6fe0a5; border-color: #2a6b4a; }
+.badge.off { color: #aab; }
+.badge.fail { color: #ff9b9b; border-color: #7a2a2a; }
+.gdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+details.host > summary label { cursor: pointer; margin-left: 6px; }
+details.host > summary input { accent-color: var(--accent); }
+.satitem .stats b { color: var(--text); font-weight: 600; }
+.label.sat { font-size: 11px; color: #d6e8ff; }
+.label.sat.sel { color: var(--accent); font-weight: bold; }
+.label.site { font-size: 11px; color: #ffd27a; }
+.label.moonlabel { font-size: 12px; color: #e8e8e8; }
+@media (max-width: 800px) {
+  .infocard { padding: 8px; }
+  .infocard td { font-size: 11.5px; }
+  .infocard td:first-child { width: 58px; }
+}

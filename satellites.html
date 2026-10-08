@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>국내 위성 추적</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="satellites.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.js",
+      "three/addons/": "./vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="vendor/astronomy.browser.js"></script>
+  <script src="vendor/satellite.min.js"></script>
+</head>
+<body>
+  <aside id="panel">
+    <h1>국내 위성 추적</h1>
+    <a class="navlink" href="index.html">← 태양계 시뮬레이터로</a>
+
+    <section>
+      <h2>시간 배속</h2>
+      <div class="seg" id="speedBtns">
+        <label><input type="radio" name="spd" value="1" checked><span>1x</span></label>
+        <label><input type="radio" name="spd" value="10"><span>10x</span></label>
+        <label><input type="radio" name="spd" value="60"><span>60x</span></label>
+        <label><input type="radio" name="spd" value="600"><span>600x</span></label>
+        <label><input type="radio" name="spd" value="3600"><span>3600x</span></label>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <span class="hint" id="speedHint" style="margin:0"></span>
+        <span><button id="nowBtn" type="button">지금으로</button> <button id="pauseBtn" type="button">일시정지</button></span>
+      </div>
+    </section>
+
+    <section>
+      <h2>날짜 설정</h2>
+      <div class="row">
+        <input id="dateInput" type="datetime-local" step="60">
+        <button id="applyDate" type="button">적용</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>보기</h2>
+      <button id="viewEarth" type="button" class="wide">지구 전체 보기</button>
+      <button id="viewMoon" type="button" class="wide" style="margin-top:6px">달·다누리 보기</button>
+      <div class="hint">위성 점을 클릭하면 정보, 더블클릭하면 가까이 가서 따라갑니다. 목록에서 누르면 바로 따라갑니다.</div>
+    </section>
+
+    <section>
+      <h2>표시 옵션</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="optOrbit" checked> 선택한 위성의 궤도선</label>
+        <label><input type="checkbox" id="optAllOrbits"> 모든 위성 궤도선 (정지궤도 제외)</label>
+        <label><input type="checkbox" id="optLabels"> 모든 위성 이름 (끄면 선택·정지궤도만)</label>
+        <label><input type="checkbox" id="optClouds" checked> 구름</label>
+        <label><input type="checkbox" id="optSites" checked> 서울·나로우주센터 표시</label>
+        <label><input type="checkbox" id="optMoon" checked> 달</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>위성 정보</h2>
+      <div id="infoCard" class="infocard"><div class="hint">지도에서 위성을 누르거나 아래 목록에서 고르세요.</div></div>
+    </section>
+
+    <section>
+      <h2>위성 목록 <span id="countText" class="hint" style="display:inline"></span></h2>
+      <input id="search" type="search" placeholder="이름·번호 검색" autocomplete="off">
+      <div id="groups" style="margin-top:6px"></div>
+    </section>
+
+    <section>
+      <h2>누리호 5차 (2026-10-07) 위성</h2>
+      <div class="hint">발사 직후라 궤도 정보(번호)가 아직 올라오지 않았습니다. 올라오면 지도에 나타납니다.</div>
+      <div id="pending" style="margin-top:6px"></div>
+    </section>
+
+    <section>
+      <h2>궤도 정보</h2>
+      <div class="hint" id="dataInfo"></div>
+      <button id="refreshBtn" type="button" class="wide" style="margin-top:6px">최신 궤도 정보 받아오기 (CelesTrak)</button>
+      <div class="hint" id="refreshStatus"></div>
+    </section>
+  </aside>
+
+  <button id="panelToggle" type="button" title="패널 접기/펼치기">◀</button>
+  <button id="quickPause" type="button" title="일시정지/재생">⏸</button>
+
+  <main id="stage">
+    <div id="simDate"></div>
+    <div id="loading"><div id="loadingText">지구 텍스처 불러오는 중…</div><div id="loadingBar"><div id="loadingFill"></div></div></div>
+    <div id="status"></div>
+    <div id="credits">궤도 정보: CelesTrak (위성), NASA JPL Horizons (다누리) · 위치 계산: satellite.js(SGP4), astronomy-engine · 지구·달 텍스처: Solar System Scope (CC BY 4.0), USGS/NASA · 위성 위치는 어림값(궤도 정보가 오래될수록 오차 증가) · 위성 설명은 공개 자료 정리, 확실하지 않은 칸은 "확인 중"<br><b class="maker">만든 사람 : MANKING</b></div>
+  </main>
+
+  <script type="module" src="src/sat/main.js"></script>
+</body>
+</html>
