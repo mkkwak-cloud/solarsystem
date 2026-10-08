@@ -1,0 +1,30 @@
+{
+  "name": "국내 위성 추적",
+  "short_name": "위성추적",
+  "start_url": "satellites.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#04060d",
+  "theme_color": "#04060d",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icons/sat-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/sat-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/sat-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
