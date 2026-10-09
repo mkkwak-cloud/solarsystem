@@ -93,3 +93,4 @@ details.adv>:last-child{margin-bottom:10px}
  .steps button{font-size:10.5px;padding:5px 1px}
  .tabs .grp{font-size:10.5px}
 }
+.tabs .grpbox{display:flex;gap:6px;align-items:center;flex:0 0 auto;padding:2px 6px 2px 4px;border:1px dashed var(--bd);border-radius:12px}

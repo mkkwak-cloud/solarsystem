@@ -77,20 +77,21 @@ const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, 
 const AL = { tab: 'jw', base: [], err: [], step: 4, sel: 0, defocus: 0, anim: null, nSeg: -1, last: 0, dirty: true, view: null, touched: false };
 const DUR = { A: 16, B: 24, C: 14, D: 12, F: 12 };
 const MODE_NAME = { A: '접이식 전개형', B: '우주 조립형', C: 'HWO형', J: '제임스웹 실사', K: '한국형 우주망원경', D: '편대 간섭계', F: '미래형' };
-const MODE_SUB = { A: 'JWST·Roman', B: 'iSAT류', C: '오프액시스', J: '①형 실제 예', K: '3.5mST·KASI', D: 'LIFE류', F: '아이디어 단계' };
+const MODE_SUB = { A: 'JWST·Roman', B: 'iSAT류', C: '오프액시스', J: '실제 예', K: '3.5mST·KASI', D: 'LIFE류', F: '아이디어 단계' };
 // 형태 분류(최근 논문 기준, 주경을 어떻게 만드나): ① 접어서 한 번에 쏘기 ② 우주에서 조립·제작 ③ 여러 대 나눠 띄우기 + 기타 미래형(아이디어 단계)
-const GROUPS = [['① 접어서 한 번에', ['A', 'C', 'K']], ['② 우주에서 조립', ['B']], ['③ 여러 대 나눠 띄우기', ['D']], ['기타', ['F']]];
+// ① 안은 목적으로 한 번 더 나눔: 가 = 우주 깊이 보기(적외선), 나 = 외계행성 찍기(코로나그래프)
+const GROUPS = [['①-가 한 번에 · 깊은 우주(적외선)', ['A', 'J']], ['①-나 한 번에 · 외계행성 촬영', ['C', 'K']], ['② 우주에서 조립', ['B']], ['③ 여러 대 나눠 띄우기', ['D']], ['기타', ['F']]];
 // 3.5mST 백서(KASI 2026, arXiv:2609.02571): 3.5 m·육각 18장·on-axis·시스템 f/4.5(부경 위치 25 %로 맞춤)·0.2–1.5 µm·3 m급 페어링
 const KOREA = { D: 3.5, seg: 0.68, fn: 1.3, delta: 25, bfrac: 0.15, lambda: 0.55, dens: 25, hole: true, launcher: 'f3' };
 const infoKey = () => S.jwst ? 'J' : S.korea ? 'K' : S.mode;
 const INFO = {
-  K: '<b>① 한국형 3.5 m 분할경 로봇 우주망원경(3.5mST)</b> — 한국천문연구원 등 백서(2026, arXiv 2609.02571·2609.02577, 개념 연구 단계·예산 미확보): 주경 3.5 m(육각 18장, on-axis, f/4.5), 0.2~1.5 µm, 광시야 10′~30′, 분광 R~1000(옵션 R~5000), 전용 코로나그래프(원시 대비 10⁻⁸ 목표, 후처리 10⁻⁹, IWA 3λ/D = 97 mas@550 nm, OWA 20λ/D), 수명 10년, 약 3 m 페어링. 궤도는 L2 또는 지구궤도 검토 중(🛰 LEO 뷰로 지구궤도안 확인). 지구형 행성은 태양형 별 주위(10⁻¹⁰)보다 늦은 K형 별 61 Cyg A·ε Ind A가 유력 대상입니다. 이전 제안(한정열 외 2021: 0.3~1.0 µm·LEO)도 참고.',
+  K: '<b>①-나 외계행성 찍기 · 한국형 3.5 m 분할경 로봇 우주망원경(3.5mST)</b> — 목적은 HWO처럼 행성 촬영이지만 거울은 제임스웹처럼 부경이 가운데 앞에 매달린 방식입니다. 한국천문연구원 등 백서(2026, arXiv 2609.02571·2609.02577, 개념 연구 단계·예산 미확보): 주경 3.5 m(육각 18장, on-axis, f/4.5), 0.2~1.5 µm, 광시야 10′~30′, 분광 R~1000(옵션 R~5000), 전용 코로나그래프(원시 대비 10⁻⁸ 목표, 후처리 10⁻⁹, IWA 3λ/D = 97 mas@550 nm, OWA 20λ/D), 수명 10년, 약 3 m 페어링. 궤도는 L2 또는 지구궤도 검토 중(🛰 LEO 뷰로 지구궤도안 확인). 지구형 행성은 태양형 별 주위(10⁻¹⁰)보다 늦은 K형 별 61 Cyg A·ε Ind A가 유력 대상입니다. 이전 제안(한정열 외 2021: 0.3~1.0 µm·LEO)도 참고.',
   D: '<b>③ 여러 대 나눠 띄우기 — 편대 간섭계(LIFE류)</b> — 작은 망원경 4~5대가 수십 m 간격으로 줄지어 날고, 모은 빛을 가운데 우주선에서 합칩니다. 별빛끼리 서로 지워지게 맞춰(널링) 바로 옆 행성이 내는 열(중적외선)을 봅니다. 거울 하나로는 만들 수 없는 큰 "가상 거울" 효과. 연구 단계(유럽 LIFE 구상, 리뷰 arXiv 2607.07746). ⚙에서 대수·거울 지름·간격을 바꿔 보세요. 크기·거리는 축척이 아닙니다.',
   F: '<b>기타 · 미래형 (아이디어 단계)</b> — 아직 논문 속 개념 연구 수준이라 실제 발사 계획은 없습니다. ⚙에서 종류를 고르세요: 부풀린 막 거울(OASIS) · 우주에서 만드는 액체 거울(FLUTE) · 얇은 회절 렌즈판. 크기·거리는 축척이 아닙니다.',
-  J: '<b>제임스웹(JWST) 실물 재현</b> — ① 접어서 한 번에 쏘기형의 실제 예. NASA 3D Resources의 실제 3D 모델(약 10만 폴리곤, 실제 m 단위)을 표시합니다. 2021.12.25 발사(Ariane 5), 태양–지구 L2 헤일로 궤도. 금도금 베릴륨 육각 거울 18장(대변 1.32 m, 구경 6.5 m, 집광 25.4 m²) · 3개 지지대(삼각) 부경 · 5겹 칼톤 차양막(약 21.2×14.2 m) · 5장 단일 전지판(20° 기울임). ▶ 재생: 전지판 → 부경 지지대 → 차양막 → 날개 거울. 광학은 단순 카세그레인 근사(실제는 3반사경).',
-  A: '<b>① 접이식 전개형</b> — 날개 거울·부경 붐·차광막을 접어 로켓 한 대에 싣고, 우주에서 펼칩니다(JWST·Roman 방식). ▶ 재생: 태양전지판 → 부경 붐 → 차광막 → 날개 거울 → 거울 정렬 순서.',
+  J: '<b>제임스웹(JWST) 실물 재현</b> — ①-가(접어서 한 번에 · 우주 깊이 보기)의 실제 예. NASA 3D Resources의 실제 3D 모델(약 10만 폴리곤, 실제 m 단위)을 표시합니다. 2021.12.25 발사(Ariane 5), 태양–지구 L2 헤일로 궤도. 금도금 베릴륨 육각 거울 18장(대변 1.32 m, 구경 6.5 m, 집광 25.4 m²) · 3개 지지대(삼각) 부경 · 5겹 칼톤 차양막(약 21.2×14.2 m) · 5장 단일 전지판(20° 기울임). ▶ 재생: 전지판 → 부경 지지대 → 차양막 → 날개 거울. 광학은 단순 카세그레인 근사(실제는 3반사경).',
+  A: '<b>①-가 우주 깊이 보기 · 접이식 전개형</b> — 날개 거울·부경 붐·차광막을 접어 로켓 한 대에 싣고, 우주에서 펼칩니다(JWST·Roman 방식). ▶ 재생: 태양전지판 → 부경 붐 → 차광막 → 날개 거울 → 거울 정렬 순서.',
   B: '<b>② 우주 조립형</b> — 분할거울을 여러 번에 나눠 발사하고 궤도에서 로봇팔이 하나씩 조립합니다(NASA iSAT류 개념). 회색 윤곽은 아직 조립되지 않은 자리입니다.',
-  C: '<b>① HWO형(NASA 개념)</b> — 부경 가림이 없는 오프액시스 주경 + 코로나그래프(대비 ≤10⁻¹⁰, 96×96 변형거울)로 지구형 행성을 직접 촬영. ⚙에서 EAC1/4/5 구성을 고르고 스타셰이드(별도 우주선)도 켤 수 있습니다. 형상은 개념도 수준입니다.',
+  C: '<b>①-나 외계행성 찍기 · HWO형(NASA 개념)</b> — 제임스웹 기술을 이어받되 행성 촬영용으로 새로 설계. 부경 가림이 없는 오프액시스 주경 + 코로나그래프(대비 ≤10⁻¹⁰, 96×96 변형거울)로 지구형 행성을 직접 촬영. ⚙에서 EAC1/4/5 구성을 고르고 스타셰이드(별도 우주선)도 켤 수 있습니다. 형상은 개념도 수준입니다.',
 };
 
 // ---------- 렌더러/씬 ----------
@@ -1226,7 +1227,7 @@ function syncUI() {
   $('launcher').value = S.launcher; $('eac').value = S.eac || 'eac1'; $('eacRow').style.display = S.mode === 'C' ? '' : 'none'; $('ssRow').style.display = S.mode === 'C' ? '' : 'none'; $('ssh').checked = !!S.starshade;
   $('nasaRow').style.display = S.jwst ? '' : 'none'; $('nasa').checked = !!S.nasa; $('nasaSt').textContent = NASA.state === 'fail' ? '(불러오기 실패 → 근사 모델)' : NASA.state === 'loading' ? '(불러오는 중…)' : '';
   $('info').innerHTML = INFO[infoKey()]; $('info').style.display = '';
-  document.querySelectorAll('.tab[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === infoKey()));
+  document.querySelectorAll('.tab[data-m]').forEach(b => { const on = b.dataset.m === infoKey(); b.classList.toggle('on', on); if (on && b.scrollIntoView && window.innerWidth < 760) b.scrollIntoView({ block: 'nearest', inline: 'center' }); });
   syncBar();
 }
 let bt = null;
@@ -1240,15 +1241,15 @@ function setMode(m) {
   syncUI(); build(); syncBar();
 }
 const tabs = $('tabs');
-function addTab(m) {
+function addTab(m, box) {
   const b = document.createElement('button'); b.className = 'tab'; b.dataset.m = m;
-  b.textContent = `${MODE_NAME[m]} (${MODE_SUB[m]})`; b.onclick = () => setMode(m); tabs.appendChild(b);
+  b.textContent = `${MODE_NAME[m]} (${MODE_SUB[m]})`; b.onclick = () => setMode(m); box.appendChild(b);
 }
-for (const [g, ms] of GROUPS) {   // 형태별 묶음 이름 + 탭
-  const sp = document.createElement('span'); sp.className = 'grp'; sp.textContent = g; tabs.appendChild(sp);
-  ms.forEach(addTab);
+for (const [g, ms] of GROUPS) {   // 형태별 묶음(이름 + 탭)을 한 덩어리로: 줄이 바뀌어도 묶음 중간에서 끊기지 않게
+  const box = document.createElement('span'); box.className = 'grpbox';
+  const sp = document.createElement('span'); sp.className = 'grp'; sp.textContent = g; box.appendChild(sp);
+  ms.forEach(m => addTab(m, box)); tabs.appendChild(box);
 }
-{ const sep = document.createElement('span'); sep.className = 'sep'; tabs.appendChild(sep); addTab('J'); }   // 제임스웹 실사는 따로(①형 실제 예)
 const eb = document.createElement('button'); eb.className = 'btn'; eb.textContent = '🌍 지구에서 본 심우주';
 const lb = document.createElement('button'); lb.className = 'btn'; lb.textContent = '🛰 저궤도(LEO)';
 const ib = document.createElement('button'); ib.className = 'btn'; ib.textContent = 'ⓘ 설명';
