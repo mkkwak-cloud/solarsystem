@@ -110,7 +110,7 @@ for (const m of ['A', 'B', 'C', 'J', 'K']) {
   for (const patch of [{ D: 12 }, { seg: 0.8 }, { fn: 2.2 }, { hole: false }, { D: 30, seg: 3 }, { lambda: 10 }, { shieldType: 'saltus', shieldTemp: true }, { shieldType: 'vgroove' }, { shieldType: 'jwst', shieldTemp: false }]) {
     Object.assign(T.S, patch); T.build(false); T.S.t = 1; T.frame(9000);
   }
-  T.setView('l2'); T.frame(9100); T.setView('leo'); T.frame(9150); T.frame(21000); T.setView('earth'); T.frame(9200); T.S.t = 0.4; T.build(false); T.frame(9300); T.setView('tel');
+  T.setView('leo'); T.frame(9150); T.frame(21000); T.setView('earth'); T.frame(9200); T.S.t = 0.4; T.build(false); T.frame(9300); T.setView('tel');
 }
 console.log(fails ? `\n실패 ${fails}건` : '\n스모크 테스트 통과');
 process.exitCode = fails ? 1 : 0;

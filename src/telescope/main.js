@@ -550,7 +550,7 @@ function build(fit = true) {
     }
   }
   if (S.view === 'tel') { if (fit) fitCamera(); else { holder.position.set(0, 0, 0); holder.rotation.set(0, 0, 0); holder.scale.setScalar(1); } }
-  else if (S.view === 'leo') applyHolderLEO(); else applyHolderL2();
+  else if (S.view === 'leo') applyHolderLEO(); else applyHolderEarthView();
   applyT(S.t);
   applyShieldTemp();
   updateStats();
@@ -981,18 +981,13 @@ for (const m of ['A', 'B', 'C', 'J', 'K']) {
   const b = document.createElement('button'); b.className = 'tab'; b.dataset.m = m;
   b.textContent = `${MODE_NAME[m]} (${MODE_SUB[m]})`; b.onclick = () => setMode(m); tabs.appendChild(b);
 }
-const vb = document.createElement('button'); vb.className = 'btn'; vb.textContent = '☀🌍🌙 태양·지구·달·L2';
 const eb = document.createElement('button'); eb.className = 'btn'; eb.textContent = '🌍 지구에서 본 심우주';
 const lb = document.createElement('button'); lb.className = 'btn'; lb.textContent = '🛰 저궤도(LEO)';
 const ib = document.createElement('button'); ib.className = 'btn'; ib.textContent = 'ⓘ 설명';
-function toggleView(v) { setView(S.view === v ? 'tel' : v); vb.classList.toggle('on', S.view === 'l2'); eb.classList.toggle('on', S.view === 'earth'); lb.classList.toggle('on', S.view === 'leo'); }
-vb.onclick = () => toggleView('l2'); eb.onclick = () => toggleView('earth'); lb.onclick = () => toggleView('leo');
+function toggleView(v) { setView(S.view === v ? 'tel' : v); eb.classList.toggle('on', S.view === 'earth'); lb.classList.toggle('on', S.view === 'leo'); }
+eb.onclick = () => toggleView('earth'); lb.onclick = () => toggleView('leo');
 ib.onclick = () => { const i = $('info'); i.style.display = i.style.display === 'none' ? '' : 'none'; };
-tabs.appendChild(vb); tabs.appendChild(eb); tabs.appendChild(lb); tabs.appendChild(ib);
-for (const [txt, pos, tg] of [['☀ 태양', [-60, 5, 34], [-80, 0, 0]], ['🌍 지구·달', [8, 5, 13], [0, 0, 0]], ['🔭 L2', [24, 4, 9], [16, 0, 0]]]) {
-  const cb = document.createElement('button'); cb.className = 'btn camb'; cb.textContent = txt; cb.style.display = 'none';
-  cb.onclick = () => { camera.position.set(...pos); controls.target.set(...tg); }; tabs.appendChild(cb);
-}
+tabs.appendChild(eb); tabs.appendChild(lb); tabs.appendChild(ib);
 $('gear').onclick = () => $('panel').classList.toggle('hide');
 if (window.innerWidth < 760) $('panel').classList.add('hide');
 $('play').onclick = () => { $('info').style.display = 'none'; if (S.t >= 1) S.t = 0; S.playing = !S.playing; syncBar(); };
@@ -1003,9 +998,8 @@ function syncBar() {
   $('tlab').textContent = (S.mode === 'B' ? '조립' : '전개') + extra;
 }
 
-// ---------- 태양·지구·달·L2 (절차적 실사 텍스처) ----------
-const l2 = new THREE.Group(); l2.visible = false; scene.add(l2);
-const L2X = 16, SUNX = -80, EARTH_R = 2.4, MOON_R = 0.65, MOON_ORBIT = 4.4;   // 달/지구 지름비 0.27 유지, 거리는 압축(축척 아님)
+// ---------- 이름표·절차적 텍스처 (지구·구름: 저궤도 뷰에서 사용) ----------
+const L2X = 16;   // "지구에서 본 심우주" 뷰에서 망원경(L2)을 두는 거리 (축척 아님)
 function label(text, sc = 1) {
   const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128;
   const x = cv.getContext('2d'); x.font = 'bold 44px "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
@@ -1062,80 +1056,11 @@ function cloudTexture() {
     return [255, 255, 255, a * 235];
   }, true);
 }
-function moonTexture() {
-  const t0 = sphereTex(512, 256, (x, y, z) => {
-    const mare = fbm3(x * 1.5 + 90, y * 1.5, z * 1.5, 3), g = 128 + (fbm3(x * 9, y * 9, z * 9, 4) - 0.5) * 70;
-    const dark = mare > 0.56 ? 0.62 : 1;
-    const v = g * dark; return [v, v * 0.98, v * 0.94];
-  });
-  const cv = t0.image, x = cv.getContext('2d');
-  for (let i = 0; i < 520; i++) {                       // 크레이터
-    const cx = Math.random() * cv.width, cy = (0.12 + 0.76 * Math.random()) * cv.height, r = 1.5 + Math.pow(Math.random(), 3) * 16;
-    const g = x.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
-    g.addColorStop(0, 'rgba(40,40,40,.35)'); g.addColorStop(0.75, 'rgba(60,60,60,.18)'); g.addColorStop(0.9, 'rgba(235,235,230,.35)'); g.addColorStop(1, 'rgba(235,235,230,0)');
-    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 6.2832); x.fill();
-  }
-  t0.needsUpdate = true; return t0;
-}
-function sunTexture() {
-  return sphereTex(384, 192, (x, y, z) => {
-    const n = fbm3(x * 14, y * 14, z * 14, 4), m = fbm3(x * 3 + 5, y * 3, z * 3, 3), v = 0.75 + 0.25 * n - Math.max(0, m - 0.62) * 1.4;
-    return mix([220, 90, 10], [255, 235, 160], Math.min(1, Math.max(0, v)));
-  });
-}
-function glowTex(r, g, b) {
-  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d');
-  const gr = x.createRadialGradient(128, 128, 0, 128, 128, 128);
-  gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(0.25, `rgba(${r},${g},${b},.45)`); gr.addColorStop(0.6, `rgba(${r},${g},${b},.1)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
-  x.fillStyle = gr; x.fillRect(0, 0, 256, 256); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
-let sem = null;
-function buildL2() {
-  sem = {};
-  const sunM = new THREE.Mesh(new THREE.SphereGeometry(14, 64, 40), new THREE.MeshBasicMaterial({ map: sunTexture() })); sunM.position.set(SUNX, 0, 0);
-  for (const [sc, col, op] of [[62, [255, 190, 90], 0.9], [130, [255, 150, 60], 0.45]]) {
-    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(...col), transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending }));
-    gl.scale.set(sc, sc, 1); gl.position.set(SUNX, 0, 0); l2.add(gl);
-  }
-  // 지구 (자전축 23.4° 기울임) + 구름 + 대기 가장자리 빛
-  const tilt = new THREE.Group(); tilt.rotation.z = 0.409; l2.add(tilt);
-  sem.earth = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R, 96, 64), new THREE.MeshStandardMaterial({ map: earthTexture(), roughness: 0.78, metalness: 0 }));
-  sem.cloud = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R * 1.012, 96, 64), new THREE.MeshStandardMaterial({ map: cloudTexture(), transparent: true, depthWrite: false, roughness: 1 }));
-  const atm = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R * 1.09, 64, 40), new THREE.ShaderMaterial({
-    transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
-    vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'varying vec3 vN; void main(){ float i = pow(max(0.0, 0.68 - dot(vN, vec3(0.0,0.0,1.0))), 3.0); gl_FragColor = vec4(0.32,0.58,1.0,1.0) * i * 2.2; }',
-  }));
-  tilt.add(sem.earth, sem.cloud, atm);
-  // 달: 조석 고정(항상 같은 면이 지구를 향함), 궤도 경사 5°
-  sem.moon = new THREE.Mesh(new THREE.SphereGeometry(MOON_R, 48, 32), new THREE.MeshStandardMaterial({ map: moonTexture(), bumpMap: null, roughness: 1, metalness: 0 }));
-  const orb = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 96 }, (_, i) => { const a = i / 96 * 6.2832; return new V3(MOON_ORBIT * Math.cos(a), 0.38 * Math.sin(a), MOON_ORBIT * Math.sin(a)); })), new THREE.LineBasicMaterial({ color: 0x66708c, transparent: true, opacity: 0.5 }));
-  const halo = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 96 }, (_, i) => new V3(L2X, 1.5 * Math.sin(i / 96 * 6.2832), 3.2 * Math.cos(i / 96 * 6.2832)))), new THREE.LineBasicMaterial({ color: 0x4de3ff, transparent: true, opacity: 0.5 }));
-  const axis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V3(SUNX + 14, 0, 0), new V3(L2X + 6, 0, 0)]), new THREE.LineDashedMaterial({ color: 0x556080, dashSize: 2, gapSize: 1.5 }));
-  axis.computeLineDistances();
-  const ls = label('태양 (지름 약 109배 · 거리 압축)', 1.2); ls.position.set(SUNX, 20, 0);
-  const le = label('지구', 0.9); le.position.set(0, 5.4, 0);
-  sem.lm = label('달 (지구–달 약 38만 km)', 0.8); sem.lm.scale.multiplyScalar(0.9);
-  const ll = label('L2 (지구 반대편 약 150만 km · 축척 아님)', 1.7); ll.position.set(L2X + 2, -6.5, 0);
-  const lh = label('헤일로 궤도', 0.9); lh.position.set(L2X, 6, 0);
-  l2.add(sunM, sem.moon, orb, halo, axis, ls, le, sem.lm, ll, lh);
-  sem.info = document.createElement('div');
-  sem.info.style.cssText = 'position:fixed;left:16px;bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--ink2);display:none';
-  document.body.appendChild(sem.info);
-}
-function applyHolderL2() {
+function applyHolderEarthView() {   // 지구에서 본 심우주: 망원경을 L2 쪽(축척 아님)에 작게
   const sc = (S.view === 'earth' ? 5.5 : 3.4) / ctx.extent; holder.scale.setScalar(sc); holder.rotation.set(0, 0, -Math.PI / 2);
 }
-function updateL2(time) {
+function updateEarthView(time) {   // 망원경이 L2 헤일로 궤도를 따라 천천히 돎(보기용)
   const a = time * 0.35; holder.position.set(L2X, 1.5 * Math.sin(a), 3.2 * Math.cos(a));
-  if (sem && S.view === 'l2') {
-    sem.earth.rotation.y = time * 0.6; sem.cloud.rotation.y = time * 0.66;
-    const m = time * 0.22, mx = MOON_ORBIT * Math.cos(m), mz = MOON_ORBIT * Math.sin(m), my = 0.38 * Math.sin(m);
-    sem.moon.position.set(mx, my, mz); sem.moon.rotation.y = -m + Math.PI; sem.lm.position.set(mx, my + 1.6, mz);
-    const cosE = -mx / MOON_ORBIT, frac = (1 - cosE) / 2;     // 태양은 -x 방향: 달이 태양 쪽이면 신월
-    const ph = frac < 0.03 ? '신월' : frac > 0.97 ? '보름달' : (Math.sin(m) > 0 ? (frac < 0.5 ? '초승달' : '상현~보름') : (frac < 0.5 ? '그믐달' : '보름~하현'));
-    sem.info.textContent = `달 위상: ${ph} (밝은 면 ${Math.round(frac * 100)}%) · 자전·공전은 보기 좋게 빠르게 표시`;
-  }
 }
 // ---------- 지구에서 본 심우주 뷰 ----------
 // 지구 표면(관측자)에서 anti-태양 방향(+x)으로 바라본 모습: 달 · L2의 망원경 · 먼 천체 순서로 거리감을 보여 줌 (축척 아님)
@@ -1174,7 +1099,6 @@ function galaxyTex(hue) {
   ground.computeLineDistances(); ed.add(ground);
 })();
 const INFO_VIEW = {
-  l2: '<b>태양·지구·달·L2</b> — 지구(자전축 23.4° 기울기·구름·대기), 달(조석 고정, 위상 변화), 태양과 L2 헤일로 궤도의 망원경입니다. 지구·달 지름비(1 : 0.27)만 실제와 같고 거리는 압축했습니다. 아래 버튼으로 시점을 옮기세요. (표면 질감은 절차적 생성이며 위성사진이 아님)',
   leo: '<b>저궤도(LEO) 배치</b> — 한국형 우주망원경 제안안처럼 지구 상공 수백 km를 약 90분마다 도는 배치입니다. 지구와 궤도 고도는 실제 축척이고 망원경만 크게 그렸습니다. 태양동기·정오–자정 궤도면이라 매 바퀴 지구 그림자(식)를 지납니다(회색 구간). 망원경은 천정(지구 반대쪽)을 향합니다. ⚙의 "저궤도 고도"로 고도를 바꿀 수 있습니다. L2와 달리 지구가 하늘의 약 30%를 가리고, 낮·밤이 바뀔 때마다 열 환경이 크게 변합니다.',
   earth: '<b>지구에서 본 심우주</b> — 지구 표면에 서서 태양 반대쪽(밤하늘)을 바라본 시점입니다. 가까운 달 → 150만 km 밖 L2의 제임스웹 망원경(JWST 실사 모델) → 수십 광년~130억 광년 천체 순으로 거리가 멀어집니다. 점선 하늘색은 망원경의 관측 시선입니다. 드래그=둘러보기, 핀치/휠=시야각 확대·축소. (거리는 축척 아님)',
 };
@@ -1182,17 +1106,12 @@ function setView(v) {
   S.view = v;
   if (v === 'earth') { if (!S.jwst) { S.prevMode = S.mode; setMode('J'); } S.t = 1; S.playing = false; syncBar(); }
   else if (S.prevMode && S.jwst) { const pm = S.prevMode; S.prevMode = null; if (v === 'tel') setMode(pm); }
-  if (v === 'l2' && !sem) buildL2(); if (v === 'leo' && !leoS) buildLEO();
-  l2.visible = v === 'l2'; ed.visible = v === 'earth'; leo.visible = v === 'leo'; controls.look = v === 'earth';
+  if (v === 'leo' && !leoS) buildLEO();
+  ed.visible = v === 'earth'; leo.visible = v === 'leo'; controls.look = v === 'earth';
   if (leoS) leoS.info.style.display = v === 'leo' ? '' : 'none';
-  if (sem) sem.info.style.display = v === 'l2' ? '' : 'none'; document.querySelectorAll('.camb').forEach(b => { b.style.display = v === 'l2' ? '' : 'none'; });
   camera.fov = 45; camera.updateProjectionMatrix();
-  if (v === 'l2') {
-    applyHolderL2(); sun.position.set(-1, 0.3, 0.4); camera.near = 0.05;
-    camera.position.set(6, 6, 22); controls.target.set(6, 0, 0); camera.updateProjectionMatrix();
-    $('info').innerHTML = INFO_VIEW.l2; $('info').style.display = '';
-  } else if (v === 'earth') {
-    applyHolderL2(); sun.position.set(-1, 0.3, 0.4); camera.near = 0.05;
+  if (v === 'earth') {
+    applyHolderEarthView(); sun.position.set(-1, 0.3, 0.4); camera.near = 0.05;
     camera.position.set(0, 0.25, 0); controls.target.set(1, 0.42, 0); camera.fov = 50; camera.updateProjectionMatrix();
     $('info').innerHTML = INFO_VIEW.earth; $('info').style.display = '';
   } else if (v === 'leo') {
@@ -1278,7 +1197,7 @@ function frame(now) {
   }
   syncBar();
   applyT(S.t);
-  if (S.view === 'leo') updateLEO(now / 1000); else if (S.view !== 'tel') updateL2(now / 1000);
+  if (S.view === 'leo') updateLEO(now / 1000); else if (S.view === 'earth') updateEarthView(now / 1000);
   updatePhotons(now / 1000);
   controls.autoRotate = S.auto; controls.update();
   renderer.render(scene, camera);
