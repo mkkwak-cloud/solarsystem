@@ -671,10 +671,17 @@ function frame(now) {
 }
 // ---------- 지구 시점 (관측 지점에서 하늘 보기, 기본 서울) ----------
 const ground = createGroundView({
-  scene, camera, controls, renderer, earth, stageEl, sats,
-  hide: [clouds, atmo, siteGroup],
-  getGmst: () => gmst, getSunDir: () => sunDirScene,
+  scene, camera, controls, renderer, earth, stageEl, sats, satPoints,
+  hide: [clouds, atmo, allOrbits, selOrbit], hideLabels: [siteGroup],
+  getGmst: () => gmst, getSunDir: () => sunDirScene, getMs: () => clock.ms, getSelected: () => selected,
+  colorOf: (s) => GROUPS[s.group]?.color,
   onPick: (s) => selectItem(s),
+  jumpTo: (ms, s) => {   // 통과 예보 "이 시간으로": 그 시각으로 가서 60배속으로 지나가는 모습을 본다
+    clock.date = new Date(ms); invalidateOrbits(); $('dateInput').value = toLocalInput(clock.date);
+    if (clock.paused) togglePause();
+    const r = document.querySelector('input[name=spd][value="60"]'); if (r) { r.checked = true; setSpeed(60); }
+    selectItem(s); infoCard.hidden = true;   // 하늘을 가리지 않게 정보 창은 닫아 둠 (위성을 누르면 다시 열림)
+  },
 });
 function exitGround() {
   if (!ground.on) return;

@@ -63,3 +63,13 @@ details.host > summary input { accent-color: var(--accent); }
 #skyList .fold { font-weight: 400; font-size: 11px; color: var(--dim); margin-left: 4px; }
 #skyList.folded .row { display: none; }
 @media (max-width: 800px) { #skyList { top: 52px; } }
+.label.geogroup { font-size: 12px; color: #ffe8a3; border: 1px solid #6b5a2a; border-radius: 4px; padding: 1px 5px; background: rgba(20,16,4,.6); }
+#skyPass { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+#skyPass .hd2 { color: var(--text); font-weight: 600; margin-bottom: 4px; }
+#skyPass .prow { display: flex; gap: 8px; padding: 4px 0; border-top: 1px solid #1a2438; align-items: center; }
+#skyPass .prow .pl { flex: 1; min-width: 0; }
+#skyPass .prow .pt { color: #bfe3ff; font-variant-numeric: tabular-nums; }
+#skyPass .prow .pd { color: var(--dim); font-size: 11px; }
+#skyPass .prow button { font-size: 11px; padding: 4px 6px; white-space: nowrap; }
+#skyList.folded #skyPass { display: none; }
+#skyList { width: 330px; }
