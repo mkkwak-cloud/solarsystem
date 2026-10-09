@@ -174,3 +174,13 @@ for (const m of ['A', 'B', 'C']) {
   const b = C.alignBase(segs.length);
   eq(C.alignTarget(b, 4).reduce((m, e) => Math.max(m, Math.abs(e.p)), 0) <= 0.02 ? 1 : 0, 1, '정밀 맞춤 단계 높이 어긋남 ≤ 0.02파장', 0);
 }
+
+// 11) 거울 연마 흠: 흠이 없으면 표면 오차 0, 거칠기 rms 가 슬라이더 값과 비슷, 흠이 클수록 선명도 감소
+{
+  const segs = C.hexLayout(2, 1.32, C.GAP, true), D = C.apertureOf(segs, 1.32), o = { N: 256, Dpx: 96 };
+  const P = pol => C.makeAlignPupil(segs, 1.32, D, { ...o, polish: { ...pol, lambdaNm: 550 } });
+  eq(C.pupilRmsNm(P({}), 550), 0, '연마 흠 없음 → 표면 오차 0', 1e-9);
+  eq(C.pupilRmsNm(P({ rough: 20 }), 550), 20, '거칠기 20 nm → rms 약 20 nm', 6);
+  const s1 = C.psfFromPupil(P({ rough: 12, quilt: 8, edge: 40, cold: 10 }), true).strehl, s2 = C.psfFromPupil(P({ rough: 80, quilt: 60, edge: 300, cold: 300 }), true).strehl;
+  if (!(s1 > 0.8 && s2 < s1 * 0.5)) { console.log('FAIL 연마 흠이 클수록 흐려져야 함', s1, s2); process.exitCode = 1; } else console.log('ok   연마: 제임스웹 수준', s1.toFixed(3), '/ 덜 된 거울', s2.toFixed(3));
+}

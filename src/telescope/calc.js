@@ -430,6 +430,16 @@ export function makeAlignPupil(segs, s, Deff, o = {}) {
   const N = o.N || 256, dx = Deff / (o.Dpx || 96), half = s / 2, R = s / SQ3, err = o.err || [], fd = o.defocus || 0;
   const A = new Float64Array(N * N), W = new Float64Array(N * N), TAU = 2 * Math.PI, r2 = (Deff / 2) * (Deff / 2);
   const nx = [Math.cos(Math.PI / 6), 0, -Math.cos(Math.PI / 6)], nz = [Math.sin(Math.PI / 6), 1, Math.sin(Math.PI / 6)];
+  // 연마 오차(o.polish, 모두 nm, 표면 높이가 아니라 반사된 빛의 지연 = 파면 기준): rough 무작위 거칠기 rms, quilt 벌집 무늬 진폭,
+  // edge 가장자리 처짐 깊이(폭 = 조각 크기의 12 %), cold 냉각 변형(조각마다 휘어짐, 가장자리-가운데 차이). lambdaNm 로 위상 환산.
+  const pol = o.polish || null, lamP = pol ? (pol.lambdaNm || 1000) : 1, ew = 0.12 * s, cell = s / 7;
+  const kq = 4 * Math.PI / (Math.sqrt(3) * cell);
+  const noise = (x, z, si) => {   // 부드러운 무작위 잡음(격자값 보간), 평균 0·rms 약 1
+    const f = 5 / s, u = x * f, v = z * f, iu = Math.floor(u), iv = Math.floor(v), fu = u - iu, fv = v - iv;
+    const h = (a, b) => { let t = Math.imul(a * 374761393 + b * 668265263 + si * 1442695041, 1274126177); t ^= t >>> 13; t = Math.imul(t, 1274126177); return ((t ^ (t >>> 16)) >>> 0) / 4294967295 - 0.5; };
+    const sm = t => t * t * (3 - 2 * t), a = sm(fu), b2 = sm(fv);
+    return 4.6 * ((h(iu, iv) * (1 - a) + h(iu + 1, iv) * a) * (1 - b2) + (h(iu, iv + 1) * (1 - a) + h(iu + 1, iv + 1) * a) * b2);
+  };
   segs.forEach((g, si) => {
     const e = err[si] || { dx: 0, dy: 0, p: 0 };
     const i0 = Math.floor((g.x - R) / dx + N / 2), i1 = Math.ceil((g.x + R) / dx + N / 2);
@@ -437,12 +447,29 @@ export function makeAlignPupil(segs, s, Deff, o = {}) {
     for (let j = Math.max(0, j0); j <= Math.min(N - 1, j1); j++) {
       for (let i = Math.max(0, i0); i <= Math.min(N - 1, i1); i++) {
         const X = (i - N / 2) * dx, Z = (j - N / 2) * dx, px = X - g.x, pz = Z - g.z;
-        if (Math.abs(px * nx[0] + pz * nz[0]) > half || Math.abs(pz) > half || Math.abs(px * nx[2] + pz * nz[2]) > half) continue;
-        A[j * N + i] = 1; W[j * N + i] = TAU * (e.p + (e.dx * px + e.dy * pz) / Deff + fd * (X * X + Z * Z) / r2);
+        const d1 = Math.abs(px * nx[0] + pz * nz[0]), d2 = Math.abs(pz), d3 = Math.abs(px * nx[2] + pz * nz[2]);
+        if (d1 > half || d2 > half || d3 > half) continue;
+        let w = TAU * (e.p + (e.dx * px + e.dy * pz) / Deff + fd * (X * X + Z * Z) / r2);
+        if (pol) {
+          let nm = 0;
+          if (pol.rough) nm += pol.rough * noise(px, pz, si + 1);
+          if (pol.quilt) nm += pol.quilt * (Math.cos(kq * px) + Math.cos(kq * (-0.5 * px + 0.866 * pz)) + Math.cos(kq * (-0.5 * px - 0.866 * pz)) - 0) / 1.5;
+          if (pol.edge) { const de = half - Math.max(d1, d2, d3); if (de < ew) nm -= pol.edge * (1 - de / ew) ** 2; }
+          if (pol.cold) nm += pol.cold * ((px * px + pz * pz) / (R * R) - 0.5);
+          w += TAU * nm / lamP;
+        }
+        A[j * N + i] = 1; W[j * N + i] = w;
       }
     }
   });
   return { N, A, W, dx };
+}
+
+// 동공 안 파면 오차 rms(nm): 평균(피스톤)을 뺀 표준편차. W 는 rad, lambdaNm 로 환산
+export function pupilRmsNm(pup, lambdaNm) {
+  const { A, W } = pup; let n = 0, m = 0, m2 = 0;
+  for (let q = 0; q < A.length; q++) if (A[q]) { n++; m += W[q]; m2 += W[q] * W[q]; }
+  if (!n) return 0; m /= n; return Math.sqrt(Math.max(0, m2 / n - m * m)) * lambdaNm / (2 * Math.PI);
 }
 
 // 제임스웹 거울 맞추기 단계(2022년 2~4월, 실제 과정을 단순화). base: 조각별 처음 어긋남(펼친 직후)

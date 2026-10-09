@@ -1,6 +1,6 @@
 // ===== 심우주 망원경 3D 시뮬레이터 본체 (telescope.html) =====
 // 계산은 ./calc.js, three.js 는 페이지의 import map(vendor/three) 에서 읽는다. 태양계·위성 페이지와 같은 라이브러리를 쓴다.
-import { EACS, GAP, G_CORE, LAUNCHERS, MU_E, PHASING_REF, PHYS, PRESETS, R_E, SHIELD_DEF, SHIELD_TYPES, SIGMA, SQ3, TARGETS, annulusMean, apertureOf, buildStats, contrastStability, coronagraphFromPupil, detectPower, detectThreshold, detectionBudget, envelopeRadius, fft1, fft2, fitCheck, hexLayout, hexVerts, iwaHorizonPc, leoOrbit, limitingDistance, makeOptics, makePupil, normCdf, normInv, planetFluxRatio, psfFromPupil, radialMean, requiredSNR, ringsForAperture, sag, secondaryRadius, segsAcross, starPhotonFlux, sunshieldTemps, targetStar, toleranceFor, traceRay, makeAlignPupil, ALIGN_STEPS, alignTarget, alignBase } from './calc.js';
+import { EACS, GAP, G_CORE, LAUNCHERS, MU_E, PHASING_REF, PHYS, PRESETS, R_E, SHIELD_DEF, SHIELD_TYPES, SIGMA, SQ3, TARGETS, annulusMean, apertureOf, buildStats, contrastStability, coronagraphFromPupil, detectPower, detectThreshold, detectionBudget, envelopeRadius, fft1, fft2, fitCheck, hexLayout, hexVerts, iwaHorizonPc, leoOrbit, limitingDistance, makeOptics, makePupil, normCdf, normInv, planetFluxRatio, psfFromPupil, radialMean, requiredSNR, ringsForAperture, sag, secondaryRadius, segsAcross, starPhotonFlux, sunshieldTemps, targetStar, toleranceFor, traceRay, makeAlignPupil, ALIGN_STEPS, alignTarget, alignBase, pupilRmsNm } from './calc.js';
 const $ = id => document.getElementById(id);
 let THREE;
 try {
@@ -74,7 +74,7 @@ function makeEnv(pm) {
 
 const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst', dN: 4, dColl: 2, dBase: 40, fType: 'mem', shGap: 1 };
 // 거울 맞추기 상태: err[조각 번호] = { dx, dy (별 상 위치 어긋남, λ/D), p (높이 어긋남, 파장 배수) }, defocus = 초점 어긋남(파장 배수)
-const AL = { tab: 'jw', base: [], err: [], step: 4, sel: 0, defocus: 0, anim: null, nSeg: -1, last: 0, dirty: true, view: null, touched: false };
+const AL = { pol: { rough: 0, quilt: 0, edge: 0, cold: 0 }, polLam: 550, tab: 'jw', base: [], err: [], step: 4, sel: 0, defocus: 0, anim: null, nSeg: -1, last: 0, dirty: true, view: null, touched: false };
 const DUR = { A: 16, B: 24, C: 14, D: 12, F: 12 };
 const MODE_NAME = { A: '접이식 전개형', B: '우주 조립형', C: 'HWO형', J: '제임스웹 실사', K: '한국형 우주망원경', D: '편대 간섭계', F: '미래형' };
 const MODE_SUB = { A: 'JWST·Roman', B: 'iSAT류', C: '오프액시스', J: '실제 예', K: '3.5mST·KASI', D: 'LIFE류', F: '아이디어 단계' };
@@ -836,7 +836,10 @@ function alTick(now) {
 function drawAlign() {
   const cv = $('alnC'); if (!cv || !ctx.segs) return;
   const segs = ctx.segs.map(g => ({ ...g, x: g.x - (ctx.opt.x0 || 0) }));
-  const ps = psfFromPupil(makeAlignPupil(segs, S.seg, ctx.Deff, { N: AL_N, Dpx: AL_DPX, err: AL.err, defocus: AL.defocus }), true);
+  const lamNm = AL.polLam || S.lambda * 1000, anyPol = AL.pol.rough || AL.pol.quilt || AL.pol.edge || AL.pol.cold;
+  const pup = makeAlignPupil(segs, S.seg, ctx.Deff, { N: AL_N, Dpx: AL_DPX, err: AL.err, defocus: AL.defocus, polish: anyPol ? { ...AL.pol, lambdaNm: lamNm } : null });
+  const ps = psfFromPupil(pup, true);
+  const mapMax = AL.tab === 'pol' ? drawPolMap(pup, lamNm) : 0;
   const spread = AL.err.reduce((m, e) => Math.max(m, Math.abs(e.dx), Math.abs(e.dy)), 0);
   const zoom = spread < 4 && Math.abs(AL.defocus) < 1.2, half = zoom ? 14 : 48, pp = AL_N / AL_DPX;
   const W = 2 * Math.round(half * pp) + 1, h = (W - 1) / 2, c0 = AL_N / 2, img = ps.img;
@@ -857,18 +860,40 @@ function drawAlign() {
     });
   }
   if (AL.tab === 'man' && !zoom) { const e = AL.err[AL.sel]; if (e) { g.strokeStyle = '#ff8a3d'; g.lineWidth = 1.5; g.beginPath(); g.arc(h + e.dx * pp, h + e.dy * pp, 5 * pp, 0, 2 * Math.PI); g.stroke(); } }
-  const segOk = spread < 0.5 && AL.err.every(e => Math.abs(e.p) < 0.05), why = segOk && Math.abs(AL.defocus) > 0.15 ? '초점이 안 맞음' : '조각들이 거울 하나처럼 동작하지 않음';
+  const segOk = spread < 0.5 && AL.err.every(e => Math.abs(e.p) < 0.05), why = segOk && Math.abs(AL.defocus) > 0.15 ? '초점이 안 맞음' : segOk && anyPol ? '거울 표면(연마) 흠' : '조각들이 거울 하나처럼 동작하지 않음';
   const s = ps.strehl, v = s >= 0.8 ? ['ok', '또렷함 — 제임스웹 목표 수준(파장 2 µm에서 0.8 이상)'] : s >= 0.3 ? ['', `조금 흐림 — ${why}`] : ['bad', `흐림 — ${why}`];
-  $('alnStat').innerHTML = `<p class="verdict ${v[0]}">선명도 ${s.toFixed(2)} (1 = 완벽) · ${v[1]}</p><p class="easy">${zoom ? '가운데를 크게 확대한 그림입니다.' : '넓게 본 그림입니다(점 하나 = 거울 조각 하나가 만든 별 모습).'} 색이 밝을수록 빛이 많이 모인 곳.</p>`;
+  const rmsTxt = AL.tab === 'pol' ? `<p class="easy">거울 표면 오차 ${pupilRmsNm(pup, lamNm).toFixed(0)} nm rms (보는 빛 ${(lamNm / 1000).toFixed(2)} µm 기준) · 지도 색 범위 ±${mapMax.toFixed(0)} nm(가장 높은 곳이 진한 빨강) · 참고: 제임스웹 조각 약 20 nm, 외계 지구 촬영용(HWO)은 이보다 훨씬 작아야 함</p>` : '';
+  $('alnStat').innerHTML = rmsTxt + `<p class="verdict ${v[0]}">선명도 ${s.toFixed(2)} (1 = 완벽) · ${v[1]}</p><p class="easy">${zoom ? '가운데를 크게 확대한 그림입니다.' : '넓게 본 그림입니다(점 하나 = 거울 조각 하나가 만든 별 모습).'} 색이 밝을수록 빛이 많이 모인 곳.</p>`;
+}
+function drawPolMap(pup, lamNm) {   // 거울 표면 높낮이 지도(파면 nm): 빨강 = 높음, 파랑 = 낮음
+  const cv = $('alnM'); if (!cv) return;
+  const n = AL_DPX + 4, o0 = AL_N / 2 - n / 2, k = lamNm / (2 * Math.PI);
+  let m = 0, c = 0, mx = 1e-9;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const q = (o0 + y) * AL_N + o0 + x; if (pup.A[q]) { m += pup.W[q]; c++; } }
+  m = c ? m / c : 0;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const q = (o0 + y) * AL_N + o0 + x; if (pup.A[q]) mx = Math.max(mx, Math.abs((pup.W[q] - m) * k)); }
+  cv.width = cv.height = n;
+  const g = cv.getContext('2d'), im = g.createImageData(n, n);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const q = (o0 + y) * AL_N + o0 + x, p = 4 * (y * n + x);
+    if (!pup.A[q]) { im.data[p + 3] = 255; continue; }
+    const t = Math.max(-1, Math.min(1, (pup.W[q] - m) * k / mx));
+    im.data[p] = 255 * (t > 0 ? 1 : 1 + t * 0.85); im.data[p + 1] = 255 * (1 - Math.abs(t) * 0.8); im.data[p + 2] = 255 * (t < 0 ? 1 : 1 - t * 0.85); im.data[p + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  return mx;
 }
 function alSync() {
   if (!$('alnSec')) return;
   document.querySelectorAll('#alnTabs button').forEach(b => b.classList.toggle('on', b.dataset.a === AL.tab));
-  $('alnJw').hidden = AL.tab !== 'jw'; $('alnMan').hidden = AL.tab !== 'man'; $('alnFoc').hidden = AL.tab !== 'foc';
+  $('alnJw').hidden = AL.tab !== 'jw'; $('alnMan').hidden = AL.tab !== 'man'; $('alnFoc').hidden = AL.tab !== 'foc'; $('alnPol').hidden = AL.tab !== 'pol';
+  for (const k of ['rough', 'quilt', 'edge', 'cold']) { const id = 'pol' + k[0].toUpperCase() + k.slice(1); $(id).value = AL.pol[k]; $(id + 'V').textContent = AL.pol[k] + ' nm'; }
+  $('polLam').value = String(AL.polLam);
   document.querySelectorAll('#alnSteps button').forEach((b, i) => b.classList.toggle('on', i === AL.step));
   const st = ALIGN_STEPS[AL.step];
   if (AL.tab === 'jw') $('alnMsg').innerHTML = `<b>${AL.step + 1}/5 ${st.name}</b> — ${st.tip}` + (AL.step === 4 && !AL.touched ? ' <br>▶ "1 펼친 직후"부터 차례로 눌러 보세요.' : '') + ' <span class="mu">(실제 제임스웹은 2022년 2~4월 약 3개월 걸림)</span>';
   else if (AL.tab === 'man') $('alnMsg').textContent = `${AL.sel + 1}번 조각을 움직입니다. 기울기를 바꾸면 그 조각의 점이 움직이고, 높이를 바꾸면 가운데 별 모양이 얼룩집니다.`;
+  else if (AL.tab === 'pol') $('alnMsg').textContent = '조각 정렬은 다 맞춘 상태에서, 거울 표면 자체의 흠이 별 모습을 어떻게 바꾸는지 봅니다.';
   else $('alnMsg').textContent = '부경(작은 거울) 위치가 맞지 않으면 별이 동그랗게 퍼져 흐려집니다.';
   const e = AL.err[AL.sel] || { dx: 0, dy: 0, p: 0 };
   if (!AL.anim) { $('alnX').value = e.dx; $('alnY').value = e.dy; $('alnP').value = e.p; $('alnF').value = AL.defocus; }
@@ -1096,7 +1121,7 @@ const CE = {};
     '<div class="chk" id="ssRow"><input type="checkbox" id="ssh"><label for="ssh">스타셰이드(별도 우주선) 표시</label></div>' +
     '<h2>성능 요약</h2><div id="stats"></div>' +
     '<div id="alnSec"><h2>🔧 거울 맞추기 (핵심 조절)</h2><p class="easy">큰 우주망원경은 렌즈 대신 거울 조각을 씁니다. 조각마다 뒤에 작은 모터가 있어 기울기·높이를 아주 조금씩 움직여 맞춥니다(제임스웹: 조각당 7개, 부경 포함 모두 132개).</p>' +
-    '<div class="seg3" id="alnTabs"><button type="button" data-a="jw">제임스웹 방식</button><button type="button" data-a="man">직접 조절</button><button type="button" data-a="foc">초점</button></div>' +
+    '<div class="seg3" id="alnTabs"><button type="button" data-a="jw">제임스웹 방식</button><button type="button" data-a="man">직접 조절</button><button type="button" data-a="foc">초점</button><button type="button" data-a="pol">연마</button></div>' +
     '<canvas id="alnC" width="257" height="257" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:8px auto 4px;background:#000;border:1px solid var(--bd);border-radius:8px;cursor:pointer"></canvas>' +
     '<div id="alnMsg" class="easy"></div>' +
     '<div id="alnJw"><div class="steps" id="alnSteps"></div><div class="row2"><button type="button" class="btn" id="alnPrev">◀ 이전</button><button type="button" class="btn" id="alnNext">다음 단계 ▶</button></div></div>' +
@@ -1109,6 +1134,17 @@ const CE = {};
     '<div id="alnFoc" hidden><div class="row"><label><span>부경 앞뒤 위치 (초점)</span><span id="alnFV"></span></label><input type="range" id="alnF" min="-3" max="3" step="0.05"></div>' +
     '<div class="row2"><button type="button" class="btn" id="alnF0">초점 맞춤</button></div>' +
     '<p class="easy">작은 거울(부경)을 앞뒤로 아주 조금(실제로는 수~수십 µm) 움직이면 별이 흐려졌다 또렷해집니다. 3D에서는 크게 과장해 보여 줍니다. 값 = 거울 가장자리에서 빛이 늦게 도착하는 정도(파장 배수).</p></div>' +
+    '<div id="alnPol" hidden>' +
+    '<p class="easy">거울을 깎고 닦을 때 남는 흠을 넣어 봅니다. 위 그림 = 별 모습, 아래 그림 = 거울 표면 높낮이 지도(빨강 = 높음, 파랑 = 낮음).</p>' +
+    '<canvas id="alnM" width="96" height="96" style="width:100%;max-width:200px;aspect-ratio:1;display:block;margin:4px auto;background:#000;border:1px solid var(--bd);border-radius:8px;image-rendering:pixelated"></canvas>' +
+    '<div class="row"><label><span>보는 빛 (짧을수록 같은 흠도 더 흐려짐)</span></label><select id="polLam"><option value="550">가시광 0.55 µm (HWO·한국형)</option><option value="2000">적외선 2 µm (제임스웹 기준)</option><option value="0">설계 파장 (위에서 정한 값)</option></select></div>' +
+    '<div class="row"><label><span>① 표면 거칠기 (자잘한 울퉁불퉁)</span><span id="polRoughV"></span></label><input type="range" id="polRough" min="0" max="200" step="1"></div>' +
+    '<div class="row"><label><span>② 벌집 무늬 (가볍게 파낸 뒷면이 비침)</span><span id="polQuiltV"></span></label><input type="range" id="polQuilt" min="0" max="200" step="1"></div>' +
+    '<div class="row"><label><span>③ 가장자리 처짐 (모서리가 둥글게 닳음)</span><span id="polEdgeV"></span></label><input type="range" id="polEdge" min="0" max="600" step="5"></div>' +
+    '<div class="row"><label><span>④ 냉각 변형 (영하 240°C에서 휘는 것을 미리 안 깎음)</span><span id="polColdV"></span></label><input type="range" id="polCold" min="0" max="600" step="5"></div>' +
+    '<div class="row2"><button type="button" class="btn" id="polRaw">연마 덜 된 거울</button><button type="button" class="btn" id="polJw">제임스웹 수준</button><button type="button" class="btn" id="polZero">완벽</button></div>' +
+    '<p class="note">왜 어렵나: ① 표면 오차를 수십 nm(머리카락 굵기의 수천분의 1) 이하로 깎아야 합니다. ② 우주로 쏘려면 뒷면을 벌집처럼 파내 가볍게 하는데, 닦을 때 누르는 힘에 얇은 앞판이 휘어 벌집 자국이 남습니다(천문연이 실리콘카바이드 경량 거울로 연구한 문제). ③ 조각마다 가장자리가 많아 모서리가 닳으면 별빛이 퍼집니다. ④ 제임스웹은 실온에서 깎은 뒤 극저온 시험실에서 휘는 양을 재어 그만큼을 거꾸로 깎아 넣었습니다. 값은 반사된 빛 기준(파면) nm, 개략 모델입니다.</p>' +
+    '</div>' +
     '<div id="alnStat"></div>' +
     '<p class="note">국내 근거: 한국천문연구원은 거울 조각을 지지대에 조립하고, 모터로 위치를 맞추고, 레이저 간섭계로 조각의 높이 차이를 재는 장치를 만들어 시험했습니다(<a href="https://arxiv.org/abs/2609.02571" target="_blank" rel="noopener">3.5m 분할거울 우주망원경 백서 3.2절, 2026</a>). 또 가벼운 우주용 거울(실리콘카바이드)을 매끈하게 깎고 닦는 기술을 2014년부터 미국 국립광학천문대와 함께 연구했고(<a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2018-16-kasi-application-of-extended-mari-concept-for-sic-mirrors-rev-a.pdf" target="_blank" rel="noopener">NASA 거울기술 워크숍 2018</a> · <a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2017-27-kasi-optical-characterization-of-300-mm-sic-mirrors.pdf" target="_blank" rel="noopener">2017</a>), 비대칭 오목 거울 조각의 모양을 정하는 방법도 발표했습니다(<a href="https://repository.arizona.edu/handle/10150/634628" target="_blank" rel="noopener">한정열 외, JATIS 2019</a>). 이 화면의 조각별 기울기·높이 맞추기가 바로 그 기술을 단순하게 보여 주는 것입니다.</p></div>' +
     '<h2>표시</h2><div class="chk"><input type="checkbox" id="rays" checked><label for="rays">광선 경로</label></div>' +
@@ -1203,7 +1239,7 @@ const CE = {};
   document.querySelectorAll('#alnTabs button').forEach(b => b.addEventListener('click', () => {
     AL.tab = b.dataset.a;
     const messy = AL.err.some(e => Math.hypot(e.dx, e.dy) > 0.5 || Math.abs(e.p) > 0.05);
-    if (AL.tab === 'foc' && messy) alGo(AL.err.map(() => ({ dx: 0, dy: 0, p: 0 })), 4);   // 초점 연습은 조각을 다 맞춘 상태에서
+    if ((AL.tab === 'foc' || AL.tab === 'pol') && messy) alGo(AL.err.map(() => ({ dx: 0, dy: 0, p: 0 })), 4);   // 초점 연습은 조각을 다 맞춘 상태에서
     else alSync();
   }));
   $('alnSel').addEventListener('change', e => { AL.sel = +e.target.value; alSync(); });
@@ -1213,6 +1249,12 @@ const CE = {};
   $('alnMess').onclick = () => alGo(alignTarget(AL.base, 0), 0);
   $('alnF').addEventListener('input', e => { AL.anim = null; AL.defocus = +e.target.value; alSync(); });
   $('alnF0').onclick = () => alGo(AL.err.map(e => ({ ...e })), null, 0);
+  for (const k of ['rough', 'quilt', 'edge', 'cold']) $('pol' + k[0].toUpperCase() + k.slice(1)).addEventListener('input', e => { AL.pol[k] = +e.target.value; alSync(); });
+  $('polLam').addEventListener('change', e => { AL.polLam = +e.target.value; alSync(); });
+  const polSet = v => { AL.pol = { ...v }; alSync(); };
+  $('polRaw').onclick = () => polSet({ rough: 80, quilt: 60, edge: 300, cold: 300 });
+  $('polJw').onclick = () => polSet({ rough: 12, quilt: 8, edge: 40, cold: 10 });
+  $('polZero').onclick = () => polSet({ rough: 0, quilt: 0, edge: 0, cold: 0 });
   $('alnC').addEventListener('click', e => {   // 그림 속 점을 누르면 그 조각 고르기
     const v = AL.view; if (!v || v.zoom) return;
     const r = e.currentTarget.getBoundingClientRect(), W = e.currentTarget.width, sc = W / r.width;
