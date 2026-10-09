@@ -28,7 +28,7 @@ export function createAsteroids(scene, data) {
     group.add(mesh, marker, label);
     scene.add(group);
 
-    const orbit = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xb59a6a, transparent: true, opacity: 0.4 }));
+    const orbit = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xb59a6a, transparent: true, opacity: 0.28 }));
     orbit.frustumCulled = false;
     scene.add(orbit);
 

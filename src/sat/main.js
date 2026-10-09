@@ -672,7 +672,7 @@ function frame(now) {
 // ---------- 지구 시점 (관측 지점에서 하늘 보기, 기본 서울) ----------
 const ground = createGroundView({
   scene, camera, controls, renderer, earth, stageEl, sats, satPoints,
-  hide: [clouds, atmo, allOrbits, selOrbit], hideLabels: [siteGroup],
+  hide: [earth, clouds, atmo, allOrbits, selOrbit], hideLabels: [siteGroup],   // 지구 본체는 어두운 땅 구와 면이 엇갈려 비치므로 숨김
   getGmst: () => gmst, getSunDir: () => sunDirScene, getMs: () => clock.ms, getSelected: () => selected,
   colorOf: (s) => GROUPS[s.group]?.color,
   onPick: (s) => selectItem(s),
@@ -712,5 +712,5 @@ function enterGround(place) {
 updateEnvironment(clock.date);
 invalidateOrbits();   // 첫 프레임에서 위성 위치가 계산된 뒤 궤도선을 새로 그리게 함
 requestAnimationFrame(frame);
-window.__sat = { sats, danuri, clock, camera, controls, selectItem, flyToItem, viewMoon, viewEarth, ground, enterGround, exitGround };
+window.__sat = { scene, sats, danuri, clock, camera, controls, selectItem, flyToItem, viewMoon, viewEarth, ground, enterGround, exitGround };
 if (new URLSearchParams(location.search).get('view') === 'ground') enterGround();   // satellites.html?view=ground   // 시험용

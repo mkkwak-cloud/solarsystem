@@ -96,7 +96,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070d);
 const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 2e5);
 const controls = new Orbit(camera, canvas);
-function hidePopups() { $('info').style.display = 'none'; if (window.innerWidth < 760) $('panel').classList.add('hide'); }
+function hidePopups() { if (window.innerWidth < 760) { $('info').style.display = 'none'; $('panel').classList.add('hide'); } }   // 데스크톱은 돌려 보다가 닫히지 않게
 controls.onTap = hidePopups;
 $('info').addEventListener('click', () => { $('info').style.display = 'none'; });
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -510,7 +510,7 @@ function build(fit = true) {
     ctx.solarAnim = pw => wings.forEach(({ h1, h2, sgn }) => { h1.rotation.z = sgn * (Math.PI / 2) * (1 - pw); h2.rotation.z = -sgn * Math.PI * 0.98 * (1 - pw); });
     ctx.solarLabel = 'Roman형 태양전지판 6장 (중앙 2 고정 + 외곽 4 전개)';
   }
-  if (ctx.names) { const ln = label(ctx.solarLabel, 0.06 * Deff); ln.position.set(sx0 + (mode === 'A' ? 0.5 : 0.55) * Deff, yBus - 0.16 * Deff, 0); ctx.names.add(ln); }
+  if (ctx.names) { const ln = label(ctx.solarLabel, 0.06 * Deff); ln.position.set(sx0 + (mode === 'A' ? 0.78 : 0.62) * Deff, yBus + 0.02 * Deff, 0); ctx.names.add(ln); }
   if (mode === 'B') {
     const keel = makeCyl(0.015 * Deff, M.strut); tel.add(keel);
     setCyl(keel, new V3(0, yBus, 0), new V3(0, yBP, 0));
@@ -730,7 +730,8 @@ function updateStats() {
 //       Sahoo 외 arXiv:2607.28393 (분할경 허용 오차 pm 수준). Fraunhofer 근사(동공 FFT)이며 코로나그래프는 포함하지 않음.
 const PSF_N = 512, PSF_DPX = 160, PSF_HALF = 16;   // 격자, 동공 지름 픽셀, 표시 반경(λ/D)
 let psfT = null, psfPerfect = { key: '', f: null };
-function schedulePSF() { clearTimeout(psfT); psfT = setTimeout(updatePSF, 140); }
+const advOpen = () => !!($('advPsf')?.open || $('advBud')?.open);   // 고급 상자를 하나라도 펼쳤을 때만 계산
+function schedulePSF() { clearTimeout(psfT); if (advOpen()) psfT = setTimeout(updatePSF, 140); }
 const fmtOpd = nm => !isFinite(nm) ? '∞' : nm >= 1000 ? (nm / 1000).toFixed(1) + ' µm' : nm >= 1 ? nm.toFixed(nm < 10 ? 1 : 0) + ' nm' : nm >= 1e-3 ? (nm * 1000).toFixed(nm < 0.01 ? 1 : 0) + ' pm' : (nm * 1e6).toFixed(nm < 1e-5 ? 1 : 0) + ' fm';
 function updatePSF() {
   if (!ctx.segs) return;
@@ -819,13 +820,11 @@ function applyShieldTemp() {
 
 // ---------- 차양막 비교표 ----------
 function renderShieldCmp() {
-  const ks = Object.keys(SHIELD_TYPES), R = SHIELD_TYPES;
-  const items = [['mission', '미션'], ['layers', '구성'], ['size', '크기'], ['film', '재료'], ['coat', '코팅'], ['deploy', '전개'], ['mass', '질량'], ['target', '대상'], ['pub', '공개 온도']];
-  const model = k => R[k].pubT ? '(같은 모델 적용 안 함)' : sunshieldTemps(R[k].n).T.map(t => t.toFixed(0)).join('→') + ' K';
-  const th = ks.map(k => `<th style="text-align:left;color:${k === S.shieldType ? 'var(--ac)' : 'var(--ink2)'};font-weight:600;padding:3px 4px">${R[k].name.split(' (')[0]}</th>`).join('');
-  const body = items.map(([id, nm]) => `<tr><td class="mu" style="padding:3px 4px;white-space:nowrap">${nm}</td>${ks.map(k => `<td style="text-align:left;color:var(--tx);padding:3px 4px">${R[k].rows[id]}</td>`).join('')}</tr>`).join('') +
-    `<tr><td class="mu" style="padding:3px 4px;white-space:nowrap">모델</td>${ks.map(k => `<td style="text-align:left;padding:3px 4px">${model(k)}</td>`).join('')}</tr>`;
-  $('shCmp').innerHTML = `<div style="overflow-x:auto"><table style="font-size:10.5px;min-width:300px"><tr><th></th>${th}</tr>${body}</table></div>` +
+  const R = SHIELD_TYPES;
+  const items = [['mission', '미션'], ['layers', '구성'], ['size', '크기'], ['film', '재료'], ['coat', '코팅'], ['deploy', '전개'], ['mass', '질량'], ['target', '식히는 대상'], ['pub', '온도(공개)']];
+  const model = k => R[k].pubT ? '(같은 모델 적용 안 함)' : sunshieldTemps(R[k].n).T.map(t => t.toFixed(0)).join(' → ') + ' K';
+  $('shCmp').innerHTML = Object.keys(R).map(k => `<div class="shcard${k === S.shieldType ? ' on' : ''}"><b>${R[k].name}</b><dl>` +
+    items.map(([id, nm]) => `<dt>${nm}</dt><dd>${R[k].rows[id]}</dd>`).join('') + `<dt>이 시뮬 모델</dt><dd>${model(k)}</dd></dl></div>`).join('') +
     `<p class="note">출처: JWST — NASA 공개값, 층 면적은 <a href="https://arxiv.org/abs/2405.12394" target="_blank" rel="noopener" style="color:var(--ac2)">SALTUS 논문</a> 표 10 · SALTUS — Harding 외 arXiv 2405.12394 · V-groove — <a href="https://arxiv.org/abs/2608.13185" target="_blank" rel="noopener" style="color:var(--ac2)">FOSSIL 열 구조(arXiv 2608.13185)</a>. "이 시뮬 모델"은 JWST 공개 온도에 맞춘 1차원 복사 모델에 겹 수만 바꾼 값입니다. SALTUS가 2겹으로 &lt;45 K를 내는 것은 모델에 없는 요소(주경을 태양선과 약 90°로 두는 자세, 층당 ~1,000 m²의 넓은 면적, 2 m 층 간격의 측면 방열, 뒷면 고방출 코팅) 덕분이라 모델값(2층 ~209 K)과 다릅니다. V-groove는 태양이 아니라 293 K 위성 본체를 막는 구조라 공개값만 표시합니다.</p>`;
 }
 
@@ -860,7 +859,11 @@ function updateBudget() {
     ['허용 대비 안정도 · 드리프트', b.specAllow > 0 ? `${b.cStabAllow.toExponential(2)} · ${fmtOpd(drA)}` : '없음 (광자+보정만으로 초과)'],
     [`${tH.toFixed(0)} h 한계 거리 (광학 잔여 0)`, tg.d ? '— (고정 대상)' : `${dLim.toFixed(1)} pc`],
   ];
-  $('budStats').innerHTML = '<table>' + rows.map(r => `<tr><td class="mu">${r[0]}</td><td class="${r[2] || ''}">${r[1]}</td></tr>`).join('') + '</table>' +
+  const verdict = !geoOk ? ['bad', '행성이 별빛을 가리는 범위(암부) 밖에 있어 볼 수 없습니다. 더 가까운 별을 고르거나 IWA를 바꿔 보세요.']
+    : b.power >= 0.99 ? ['ok', `이 관측 시간(${tH.toFixed(0)}시간)이면 찾을 수 있습니다.`]
+    : isFinite(b.tReqH) ? ['bad', `지금 시간으로는 부족합니다. 약 ${b.tReqH.toFixed(b.tReqH < 10 ? 1 : 0)}시간 보면 찾을 수 있습니다.`]
+    : ['bad', '남은 별빛의 흔들림(거울 정렬 오차 드리프트)이나 보정 잡음이 커서 시간을 늘려도 찾기 어렵습니다. 드리프트를 줄이거나 다른 별을 골라 보세요.'];
+  $('budStats').innerHTML = `<p class="verdict ${verdict[0]}">판정: ${verdict[1]}</p>` + '<table>' + rows.map(r => `<tr><td class="mu">${r[0]}</td><td class="${r[2] || ''}">${r[1]}</td></tr>`).join('') + '</table>' +
     `<p class="note">근거: <a href="https://arxiv.org/abs/2609.32023" target="_blank" rel="noopener" style="color:var(--ac2)">Turyshev, arXiv 2609.32023</a>의 해석적 모델을 단순화했습니다. 61 Cyg A·ε Ind A는 <a href="https://arxiv.org/abs/2609.02577" target="_blank" rel="noopener" style="color:var(--ac2)">3.5mST 백서 III</a>의 지구형(EEID) 대상(대비 1.2×10⁻⁹·6.9×10⁻¹⁰ 재현)이며 별 반지름은 흑체 근사입니다. 한국형 모드는 원시 대비를 백서 목표 10⁻⁸로 둡니다(6 m·500 nm·5 pc 기준값 재현: 광자 FRN 8.80 ppt, 한계 거리 8.11 pc). 대역 20%, QE 0.2, 하늘 배경 0.02 e⁻/s, 보정 잔차 3.5 ppt, 측광 구멍 0.7λ/D. 집광면적은 위 설계의 유효 집광면적을 씁니다. 드리프트→대비 안정도는 이상적 코로나그래프와 무작위 위상 결맞음 혼합(√(2·C_raw·c_d + c_d²)) 근사라 실제 자코비안 기반 값과 다를 수 있습니다. 스펙클 FRN은 롤 사이에 평균되지 않는 잔여로 봅니다(보수적).</p>`;
 }
 
@@ -877,29 +880,12 @@ const CONTROLS = [
 const CE = {};
 (function buildPanel() {
   const pn = $('panel');
-  pn.innerHTML = '<h2>성능 요약</h2><div id="stats"></div>' +
-    '<h2>별 회절상(PSF) · 분할경 위상 오차</h2><canvas id="psf" width="206" height="206" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:0 auto;background:#000;border:1px solid var(--bd);border-radius:8px"></canvas>' +
-    '<div class="row"><label><span>표시</span></label><select id="psfMode"><option value="raw">원시 PSF (코로나그래프 없음)</option><option value="cor">코로나그래프 후 (이상적, 별빛 제거)</option></select></div>' +
-    '<div class="row"><label><span>코로나그래프 IWA (초점면 마스크 반경)</span><span id="iwaV"></span></label><input type="range" id="iwa" min="2" max="8" step="0.1"></div>' +
-    '<div class="row"><label><span>분할 거울 piston 오차 (rms)</span><span id="pisV"></span></label><input type="range" id="pis" min="0" max="6" step="0.05"></div>' +
-    '<div class="row"><label><span>분할 거울 tip/tilt 오차 (rms)</span><span id="ttV"></span></label><input type="range" id="tt" min="0" max="6" step="0.05"></div>' +
-    '<div class="chk" id="strutRow"><input type="checkbox" id="strutC" checked><label for="strutC">부경 지지대 3개 그림자 포함</label></div>' +
-    '<div id="psfStats"></div>' +
-    '<h2>지구형 행성 검출 예산 (HWO OS-1 단순화)</h2>' +
-    '<div class="row"><label><span>대상 별</span></label><select id="budT"></select></div>' +
-    '<div class="row" id="dpcRow"><label><span>별까지 거리 (태양형 별)</span><span id="dpcV"></span></label><input type="range" id="dpc" min="2" max="20" step="0.1"></div>' +
-    '<div class="row"><label><span>관측 시간 (전체, 가동률 80%)</span><span id="thV"></span></label><input type="range" id="th" min="1" max="3" step="0.01"></div>' +
-    '<div class="row"><label><span>롤 사이 분할경 드리프트 (rms)</span><span id="drV"></span></label><input type="range" id="dr" min="0" max="4" step="0.05"></div>' +
-    '<div class="row"><label><span>행성 코어 처리율 τ</span><span id="tauV"></span></label><input type="range" id="tau" min="0.02" max="0.4" step="0.01"></div>' +
-    '<div id="budStats"></div>' +
-    '<h2>설계 파라미터</h2><div id="sl"></div>' +
+  pn.innerHTML = '<h2>설계 파라미터</h2><div id="sl"></div>' +
     '<div class="chk" id="holeRow"><input type="checkbox" id="hole"><label for="hole">중앙 분할거울 제외(부경 광로)</label></div>' +
     '<div class="row" id="eacRow"><label><span>HWO 구성(EAC)</span></label><select id="eac"></select></div>' +
     '<div class="row"><label><span>발사체</span></label><select id="launcher"></select></div>' +
     '<div class="chk" id="ssRow"><input type="checkbox" id="ssh"><label for="ssh">스타셰이드(별도 우주선) 표시</label></div>' +
-    '<h2>차양막 비교 (최근 논문 vs JWST)</h2>' +
-    '<div class="row"><label><span>3D 차양막 종류 (제임스웹 실사 제외)</span></label><select id="shType"></select></div>' +
-    '<div id="shCmp"></div>' +
+    '<h2>성능 요약</h2><div id="stats"></div>' +
     '<h2>표시</h2><div class="chk"><input type="checkbox" id="rays" checked><label for="rays">광선 경로</label></div>' +
     '<div class="chk" id="nasaRow"><input type="checkbox" id="nasa" checked><label for="nasa">NASA 실제 3D 모델 사용 <span id="nasaSt" style="color:var(--mu)"></span></label></div>' +
     '<div class="row"><label><span>저궤도 고도 (🛰 LEO 뷰·한국형)</span><span id="leoHV"></span></label><input type="range" id="leoH" min="350" max="1200" step="10"></div>' +
@@ -907,7 +893,29 @@ const CE = {};
     '<div class="chk"><input type="checkbox" id="names" checked><label for="names">부품 이름</label></div>' +
     '<div class="chk"><input type="checkbox" id="phot" checked><label for="phot">광자 애니메이션</label></div>' +
     '<div class="chk"><input type="checkbox" id="auto"><label for="auto">자동 회전</label></div>' +
-    '<p class="note">근거(최신 논문): <a href="https://arxiv.org/abs/2601.11803" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 개념·기술 성숙(arXiv 2601.11803)</a> · <a href="https://arxiv.org/abs/2607.02773" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 기술개발계획(arXiv 2607.02773)</a> · <a href="https://arxiv.org/abs/2507.02812" target="_blank" rel="noopener" style="color:var(--ac2)">액체거울 FLUTE(arXiv 2507.02812)</a></p><p class="note">거울 크기×링 수로 구경이 결정됩니다(최대 약 400장). 질량·적합성은 공개 자료 기반 개략치이며 구조·열·광학 정밀 해석을 대체하지 않습니다. 광학계는 카세그레인 단순화(JWST의 3반사경 아님).</p>';
+    '<p class="note">근거(최신 논문): <a href="https://arxiv.org/abs/2601.11803" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 개념·기술 성숙(arXiv 2601.11803)</a> · <a href="https://arxiv.org/abs/2607.02773" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 기술개발계획(arXiv 2607.02773)</a> · <a href="https://arxiv.org/abs/2507.02812" target="_blank" rel="noopener" style="color:var(--ac2)">액체거울 FLUTE(arXiv 2507.02812)</a></p><p class="note">거울 크기×링 수로 구경이 결정됩니다(최대 약 400장). 질량·적합성은 공개 자료 기반 개략치이며 구조·열·광학 정밀 해석을 대체하지 않습니다. 광학계는 카세그레인 단순화(JWST의 3반사경 아님).</p>' +
+    '<h2>더 알아보기 (고급 계산)</h2><p class="easy">아래 상자를 누르면 펼쳐집니다. 접혀 있는 동안은 계산하지 않아 화면이 가볍습니다.</p>' +
+    '<details class="adv" id="advPsf"><summary>⭐ 별빛 번짐 무늬 · 거울 정렬 오차</summary><p class="easy">거울 조각들이 아주 조금씩 어긋나면 별 사진이 얼마나 흐려지는지, 별빛을 가리는 장치(코로나그래프)를 쓰면 별 바로 옆이 얼마나 어두워지는지 어림 계산합니다. 용어: PSF = 별 하나가 찍힌 모양, piston·tip/tilt = 거울 조각의 높이·기울기 어긋남, IWA = 별빛을 가리는 원의 반지름, λ/D = 망원경이 구분할 수 있는 가장 작은 각도, Strehl = 1에 가까울수록 선명.</p>' +
+    '<canvas id="psf" width="206" height="206" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:0 auto;background:#000;border:1px solid var(--bd);border-radius:8px"></canvas>' +
+    '<div class="row"><label><span>표시</span></label><select id="psfMode"><option value="raw">원시 PSF (코로나그래프 없음)</option><option value="cor">코로나그래프 후 (이상적, 별빛 제거)</option></select></div>' +
+    '<div class="row"><label><span>코로나그래프 IWA (초점면 마스크 반경)</span><span id="iwaV"></span></label><input type="range" id="iwa" min="2" max="8" step="0.1"></div>' +
+    '<div class="row"><label><span>분할 거울 piston 오차 (rms)</span><span id="pisV"></span></label><input type="range" id="pis" min="0" max="6" step="0.05"></div>' +
+    '<div class="row"><label><span>분할 거울 tip/tilt 오차 (rms)</span><span id="ttV"></span></label><input type="range" id="tt" min="0" max="6" step="0.05"></div>' +
+    '<div class="chk" id="strutRow"><input type="checkbox" id="strutC" checked><label for="strutC">부경 지지대 3개 그림자 포함</label></div>' +
+    '<div id="psfStats"></div>' +
+    '</details>' +
+    '<details class="adv" id="advBud"><summary>🌍 지구 닮은 행성 찾기 어림 계산</summary><p class="easy">별 옆의 아주 어두운 행성을 이 망원경으로 찾을 수 있는지, 몇 시간 봐야 하는지 어림 계산합니다. 용어: ppt = 1조분의 1, FRN = 행성 밝기를 잴 때 섞이는 잡음(작을수록 좋음), τ = 행성 빛이 검출기까지 살아남는 비율, mas = 1000분의 1 각초.</p>' +
+    '<div class="row"><label><span>대상 별</span></label><select id="budT"></select></div>' +
+    '<div class="row" id="dpcRow"><label><span>별까지 거리 (태양형 별)</span><span id="dpcV"></span></label><input type="range" id="dpc" min="2" max="20" step="0.1"></div>' +
+    '<div class="row"><label><span>관측 시간 (전체, 가동률 80%)</span><span id="thV"></span></label><input type="range" id="th" min="1" max="3" step="0.01"></div>' +
+    '<div class="row"><label><span>롤 사이 분할경 드리프트 (rms)</span><span id="drV"></span></label><input type="range" id="dr" min="0" max="4" step="0.05"></div>' +
+    '<div class="row"><label><span>행성 코어 처리율 τ</span><span id="tauV"></span></label><input type="range" id="tau" min="0.02" max="0.4" step="0.01"></div>' +
+    '<div id="budStats"></div>' +
+    '</details>' +
+    '<details class="adv" id="advSh"><summary>☂ 차양막 비교 (최근 논문 vs 제임스웹)</summary>' +
+    '<div class="row"><label><span>3D 차양막 종류 (제임스웹 실사 제외)</span></label><select id="shType"></select></div>' +
+    '<div id="shCmp"></div>' +
+    '</details>';
   const sl = $('sl');
   for (const [k, name, unit, min, max, step, modes, lg] of CONTROLS) {
     const row = document.createElement('div'); row.className = 'row';
@@ -927,6 +935,7 @@ const CE = {};
   for (const k in EACS) { const o = document.createElement('option'); o.value = k; o.textContent = EACS[k].name; es.appendChild(o); }
   es.addEventListener('change', () => { Object.assign(S, EACS[es.value], { eac: es.value }); syncUI(); build(false); });
   $('pis').value = S.pisLog; $('tt').value = S.ttLog; $('iwa').value = S.iwa; $('psfMode').value = S.psfMode;
+  for (const id of ['advPsf', 'advBud']) $(id).addEventListener('toggle', () => schedulePSF());
   for (const k in TARGETS) $('budT').add(new Option(TARGETS[k].name, k));
   $('budT').value = S.budTarget; $('budT').addEventListener('change', e => { S.budTarget = e.target.value; updateBudget(); });
   for (const [id, k] of [['dpc', 'dPc'], ['th', 'tLog'], ['dr', 'drLog'], ['tau', 'tau']]) {
@@ -987,6 +996,7 @@ const ib = document.createElement('button'); ib.className = 'btn'; ib.textConten
 function toggleView(v) { setView(S.view === v ? 'tel' : v); eb.classList.toggle('on', S.view === 'earth'); lb.classList.toggle('on', S.view === 'leo'); }
 eb.onclick = () => toggleView('earth'); lb.onclick = () => toggleView('leo');
 ib.onclick = () => { const i = $('info'); i.style.display = i.style.display === 'none' ? '' : 'none'; };
+{ const sep = document.createElement('span'); sep.className = 'sep'; sep.title = '왼쪽: 망원경 종류 · 오른쪽: 보기 전환'; tabs.appendChild(sep); }
 tabs.appendChild(eb); tabs.appendChild(lb); tabs.appendChild(ib);
 $('gear').onclick = () => $('panel').classList.toggle('hide');
 if (window.innerWidth < 760) $('panel').classList.add('hide');
@@ -1082,7 +1092,7 @@ function galaxyTex(hue) {
   const T = [
     { az: -26, el: 9, hue: 35, name: '외계행성계 (수십~수백 광년)', R: 260 },
     { az: 9, el: 15, hue: 210, name: '이웃 은하 (수백만~수억 광년)', R: 300 },
-    { az: 33, el: 4, hue: 0, name: '초기우주 은하 (약 130억 광년 · JWST 딥필드)', R: 340 },
+    { az: 28, el: 4, hue: 0, name: '초기우주 은하 (약 130억 광년)', R: 340 },
   ];
   T.forEach((t, i) => {
     const p = EDIR(t.az, t.el, t.R);
@@ -1104,6 +1114,7 @@ const INFO_VIEW = {
 };
 function setView(v) {
   S.view = v;
+  $('bar').style.display = v === 'tel' ? '' : 'none';   // 전개 막대는 망원경 화면에서만 의미 있음
   if (v === 'earth') { if (!S.jwst) { S.prevMode = S.mode; setMode('J'); } S.t = 1; S.playing = false; syncBar(); }
   else if (S.prevMode && S.jwst) { const pm = S.prevMode; S.prevMode = null; if (v === 'tel') setMode(pm); }
   if (v === 'leo' && !leoS) buildLEO();
@@ -1190,7 +1201,7 @@ window.addEventListener('resize', resize); resize();
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now;   // 첫 프레임 시각이 앞설 때 음수가 되지 않게
   if (S.playing) {
     S.t = Math.min(1, S.t + dt / DUR[S.mode]);
     if (S.t >= 1) S.playing = false;

@@ -36,7 +36,8 @@ details.host > summary input { accent-color: var(--accent); }
 .infocard.popup { position: absolute; right: 12px; top: 12px; width: 340px; max-height: calc(100% - 60px); overflow-y: auto; z-index: 4; background: rgba(11,17,32,.96);
   box-shadow: 0 6px 24px rgba(0,0,0,.6); }
 .infocard.popup[hidden] { display: none; }
-.infocard .closex { float: right; width: 28px; height: 28px; padding: 0; line-height: 1; font-size: 16px; margin: -4px -4px 0 6px; }
+.infocard .closex { float: right; width: 36px; height: 36px; padding: 0; line-height: 1; font-size: 18px; margin: -6px -6px 0 6px; }
+@media (max-width: 800px) { .infocard .closex { width: 42px; height: 42px; } }
 .infocard .modelnote { margin-top: 6px; color: #ffc86b; font-size: 11.5px; }
 @media (max-width: 800px) {
   .infocard.popup { left: 8px; right: 8px; top: auto; bottom: 62px; width: auto; max-height: 52%; }
@@ -70,6 +71,7 @@ details.host > summary input { accent-color: var(--accent); }
 #skyPass .prow .pl { flex: 1; min-width: 0; }
 #skyPass .prow .pt { color: #bfe3ff; font-variant-numeric: tabular-nums; }
 #skyPass .prow .pd { color: var(--dim); font-size: 11px; }
-#skyPass .prow button { font-size: 11px; padding: 4px 6px; white-space: nowrap; }
+#skyPass .prow button { font-size: 12px; padding: 8px 10px; white-space: nowrap; }
 #skyList.folded #skyPass { display: none; }
 #skyList { width: 330px; }
+#skyPass .prow.past { opacity: .5; }

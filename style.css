@@ -34,15 +34,19 @@ button.wide { width: 100%; }
   border-radius: 0 8px 8px 0; background: var(--panel); }
 #stage { position: fixed; left: var(--panel-w); right: 0; top: 0; bottom: 0; }
 #stage canvas { display: block; }
-#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }   /* 이름표는 이 층 안에만: 정보창·목록보다 아래 */
 .label { color: #cfe9ff; font-size: 12px; text-shadow: 0 0 4px #000, 0 0 2px #000; white-space: nowrap; margin-top: -18px; }
 .label.sel { color: var(--accent); font-weight: bold; }
 
 #simDate { position: absolute; left: 40px; top: 12px; font-size: 22px; font-weight: 600; letter-spacing: .02em;
   text-shadow: 0 0 6px #000; pointer-events: none; z-index: 3; }
 body.collapsed #simDate { left: 40px; }
-#status { position: absolute; left: 12px; bottom: 30px; font-size: 12px; color: var(--dim); text-shadow: 0 0 4px #000; z-index: 3; }
-#credits { position: absolute; left: 12px; right: 12px; bottom: 8px; font-size: 11px; color: #5d6f8c; z-index: 3; pointer-events: none; }
+#status { position: absolute; left: 12px; bottom: 64px; font-size: 12px; color: var(--dim); text-shadow: 0 0 4px #000; z-index: 3;
+  background: rgba(4,6,13,.7); padding: 2px 6px; border-radius: 4px; }
+#status:empty { display: none; }
+#credits { position: absolute; left: 12px; right: 12px; bottom: 8px; font-size: 11px; color: #8193b0; z-index: 3; }
+#credits summary { cursor: pointer; width: max-content; padding: 2px 0; }
+#credits details[open] summary { display: none; }   /* 펼친 뒤에는 글만 */
 
 #loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 280px; text-align: center; z-index: 4;
   background: rgba(11,17,32,.9); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
@@ -103,12 +107,12 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
   input[type=datetime-local] { font-size: 11px; padding: 6px 4px; min-width: 0; width: 100%; flex: 1 1 100%; }
   #panel button { padding: 8px 8px; font-size: 12px; }
   #panel button.wide { font-size: 11.5px; line-height: 1.3; }
-  .hint { font-size: 10.5px; }
-  .checks label { padding: 3px 0; }
+  .hint { font-size: 11.5px; }
+  .checks label { padding: 8px 0; display: block; }
   .card { padding: 7px 8px; }
   .card .stats { font-size: 11px; }
   .badge { font-size: 9.5px; padding: 1px 5px; }
-  .seg span { padding: 7px 0; font-size: 12px; }
+  .seg span { padding: 10px 0; font-size: 12px; }
   #stage, body.collapsed #stage { left: 0; }           /* 패널은 화면 위에 겹쳐 나오고, 화면 크기는 그대로 */
   #panelToggle { top: 10px; width: 46px; height: 46px; font-size: 20px; border-radius: 0 12px 12px 0; }
   body.collapsed #panelToggle { border: 1px solid var(--accent); background: rgba(11,17,32,.92); }
@@ -116,17 +120,37 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
   #quickPause { display: block; position: fixed; right: 10px; top: 10px; z-index: 6; width: 46px; height: 46px; padding: 0; font-size: 18px;
     border-radius: 12px; background: rgba(11,17,32,.92); }
   body:not(.collapsed) #quickPause { display: none; }
-  #status { bottom: 84px; font-size: 11px; max-width: 92%; }
-  #credits { font-size: 9px; line-height: 1.35; }
-  .label, .label.moon, .label.comet, .label.asteroid, .label.voyager { font-size: 10px; }
+  #status { bottom: 56px; font-size: 11.5px; max-width: 92%; }
+  #credits { font-size: 10px; line-height: 1.4; }
+  #credits summary { padding: 6px 0; }
+  .label, .label.moon, .label.comet, .label.asteroid, .label.voyager { font-size: 11px; }
   #loading { width: 78%; }
 }
 
 /* 페이지 전환 버튼: 가려는 쪽의 색으로 칠해 한눈에 구분 */
 .navbtn { display: block; text-align: center; font-weight: 700; font-size: 13px; text-decoration: none; padding: 9px 8px; border-radius: 8px; margin: 0 0 8px; color: #fff; }
-.navbtn.to-sat { background: #e8590c; border: 1px solid #ff922b; }
-.navbtn.to-sat:hover { background: #f76707; }
+.navbtn.to-sat { background: #c2410c; border: 1px solid #ff922b; }   /* 흰 글자 대비 5:1 이상 */
+.navbtn.to-sat:hover { background: #d9480f; }
 .navbtn.to-solar { background: #6741d9; border: 1px solid #9775fa; }
 .navbtn.to-solar:hover { background: #7048e8; }
 .navbtn.to-tel { background: #0b7285; border: 1px solid #3bc9db; }
 .navbtn.to-tel:hover { background: #0c8599; }
+
+/* 태양계: 선택한 천체 정보창 (위성 페이지 정보창과 같은 모양) */
+#bodyCard { position: absolute; right: 12px; top: 12px; width: 300px; max-height: calc(100% - 110px); overflow-y: auto; z-index: 4;
+  background: rgba(11,17,32,.96); border: 1px solid var(--line); border-radius: 8px; padding: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.6); }
+#bodyCard[hidden] { display: none; }
+#bodyCard h3 { margin: 0 0 6px; font-size: 15px; color: var(--accent); display: flex; gap: 8px; align-items: center; justify-content: space-between; padding-right: 4px; }
+#bodyCard .stats { color: var(--text); font-size: 12.5px; line-height: 1.55; }
+#bodyCard .note { margin-top: 8px; color: var(--dim); font-size: 11.5px; }
+#bodyCard .closex { float: right; width: 36px; height: 36px; padding: 0; font-size: 18px; margin: -6px -6px 0 6px; }
+#bodyCard .navbtn { margin-top: 8px; }
+/* 첫 화면 안내 */
+#firstTip { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); z-index: 4; background: rgba(11,17,32,.92); border: 1px solid var(--accent);
+  border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--text); pointer-events: none; transition: opacity .6s; max-width: 90%; text-align: center; }
+#firstTip.gone { opacity: 0; }
+@media (max-width: 800px) {
+  #bodyCard { left: 8px; right: 8px; top: auto; bottom: 86px; width: auto; max-height: 45%; }
+  #bodyCard .closex { width: 42px; height: 42px; }
+  #firstTip { top: 66px; font-size: 12px; }
+}

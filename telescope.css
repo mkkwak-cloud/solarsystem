@@ -36,6 +36,11 @@ td.mu{color:var(--mu)}
 #bar .lab{font-size:12px;color:var(--mu);min-width:92px;text-align:right;font-variant-numeric:tabular-nums}
 #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;text-align:center;z-index:20}
 @media (max-width:760px){
+ .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}   /* 탭은 한 줄, 옆으로 밀어 보기 */
+ .tabs::-webkit-scrollbar{display:none}
+ .tab,.btn{flex:0 0 auto}
+ #info{max-height:4.8em;overflow:auto}
+ .navs .navbtn{padding:4px 8px;font-size:11.5px}
  #panel{top:auto;bottom:calc(70px + env(safe-area-inset-bottom,0px));left:16px;right:16px;width:auto;max-height:46vh;border:1px solid var(--bd);border-radius:12px}
  #panel.hide{transform:translateY(120%)}
  #info{max-width:none;font-size:12px}
@@ -49,5 +54,24 @@ td.mu{color:var(--mu)}
 .navs{display:flex;gap:6px;flex-wrap:wrap}
 .navbtn{display:inline-block;font-weight:700;font-size:12.5px;text-decoration:none;padding:6px 10px;border-radius:8px;color:#fff}
 .navbtn.to-solar{background:#6741d9;border:1px solid #9775fa}.navbtn.to-solar:hover{background:#7048e8}
-.navbtn.to-sat{background:#e8590c;border:1px solid #ff922b}.navbtn.to-sat:hover{background:#f76707}
+.navbtn.to-sat{background:#c2410c;border:1px solid #ff922b}.navbtn.to-sat:hover{background:#d9480f}
 
+
+/* 고급 계산 상자(접기), 쉬운 설명, 판정 문장 */
+details.adv{border:1px solid var(--bd);border-radius:8px;margin:8px 0;background:var(--field)}
+details.adv>summary{cursor:pointer;padding:11px 10px;font-weight:600;font-size:13px;color:var(--tx);list-style-position:inside}
+details.adv[open]>summary{border-bottom:1px solid var(--bd)}
+details.adv>:not(summary){margin-left:10px;margin-right:10px}
+details.adv>:last-child{margin-bottom:10px}
+.easy{font-size:11.5px;color:var(--ink2);line-height:1.55;margin:6px 0}
+.verdict{font-size:12.5px;padding:7px 9px;border-radius:6px;margin:8px 0;line-height:1.45}
+.verdict.ok{background:rgba(94,227,138,.12)}.verdict.bad{background:rgba(255,107,107,.12)}
+.note a{display:inline-block;padding:5px 0}
+/* 탭 줄: 망원경 종류와 보기 전환 사이 구분선 */
+.tabs .sep{flex:0 0 1px;align-self:stretch;background:var(--bd);margin:2px 4px}
+/* 차양막 비교 카드 */
+.shcard{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:12px;background:rgba(0,0,0,.15)}
+.shcard.on{border-color:var(--ac)}
+.shcard>b{color:var(--tx)}
+.shcard dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:6px 0 0}
+.shcard dt{color:var(--mu);white-space:nowrap}.shcard dd{margin:0;color:var(--ink2)}

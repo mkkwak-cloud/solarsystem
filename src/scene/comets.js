@@ -65,7 +65,7 @@ export function createComets(scene, cometData) {
     scene.add(group);
 
     const orbit = new THREE.Line(new THREE.BufferGeometry(),
-      new THREE.LineBasicMaterial({ color, transparent: true, opacity: c.kind === 'interstellar' ? 0.7 : 0.35 }));
+      new THREE.LineBasicMaterial({ color, transparent: true, opacity: c.kind === 'interstellar' ? 0.7 : 0.18 }));
     orbit.frustumCulled = false;
     scene.add(orbit);
     const orbitAU = cometOrbitAU(c, c.kind === 'interstellar' ? ORBIT_RMAX_INTERSTELLAR : ORBIT_RMAX);

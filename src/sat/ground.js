@@ -35,7 +35,7 @@ const isLeo = (s) => !s.isGeo && s.periodMin < 225;   // 하루 6바퀴 이상 (
 //      getGmst, getSunDir, getMs, getSelected, colorOf(s), onPick(s), jumpTo(ms, s) }
 export function createGroundView(d) {
   const { camera, controls, renderer, earth } = d;
-  const st = { on: false, place: PLACES[0], az: 180, alt: 35, fov: 70 };
+  const st = { on: false, place: PLACES[0], az: 180, alt: 35, fov: 70, track: null };   // track: 떠오르면 카메라가 따라갈 위성
   let saved = null, origUpdate = null;
   const U = new THREE.Vector3(), N = new THREE.Vector3(), E = new THREE.Vector3(), site = new THREE.Vector3(), look = new THREE.Vector3();
   const observer = () => ({ latitude: st.place.lat * D2R, longitude: st.place.lon * D2R, height: H * R_EQ });
@@ -194,14 +194,14 @@ export function createGroundView(d) {
     setTimeout(step, 0);
   }
   function renderPasses() {
-    const ms = d.getMs(), up = passes.filter((p) => p.end > ms).slice(0, 6);
+    const ms = d.getMs(), up = passes.filter((p) => p.end > ms - 300000).slice(0, 6);   // 끝난 통과도 5분은 '지남'으로 남김
     passEl.innerHTML = `<div class="hd2">다음 통과 예보 (${PASS_HOURS}시간, 최고 고도 ${PASS_MIN_ALT}° 이상, 1분 간격 어림)</div>` +
-      (up.length ? up.map((p) => `<div class="prow"><div class="pl"><span class="pt">${md(p.start)} ${hm(p.start)}</span> <span class="nm">${p.s.shortKo}</span>` +
-        (p.eye ? ' <span class="tag eye">맨눈 가능</span>' : p.start <= ms ? ' <span class="tag">지나는 중</span>' : '') +
+      (up.length ? up.map((p) => `<div class="prow${p.end <= ms ? ' past' : ''}"><div class="pl"><span class="pt">${md(p.start)} ${hm(p.start)}</span> <span class="nm">${p.s.shortKo}</span>` +
+        (p.end <= ms ? ' <span class="tag">지남</span>' : p.eye ? ' <span class="tag eye">맨눈 가능</span>' : p.start <= ms ? ' <span class="tag">지나는 중</span>' : '') +
         `<div class="pd">최고 ${p.max.toFixed(0)}° · ${dirName(p.azStart)}→${dirName(p.azEnd)} · ${Math.max(1, Math.round((p.end - p.start) / 60000))}분</div></div>` +
         `<button type="button" data-pass="${passes.indexOf(p)}">이 시간으로</button></div>`).join('')
         : '<div class="row dim">앞으로 24시간 안에 이 위치 위로 높이 지나가는 저궤도 위성이 없습니다.</div>') +
-      '<div class="row dim">"이 시간으로" = 통과 1분 전으로 이동하고 60배속으로 그 위성 쪽 하늘을 봅니다.</div>';
+      '<div class="row dim">"이 시간으로" = 통과 1분 전으로 이동해 60배속으로 보여 주고, 위성이 떠오르면 화면이 그 위성을 따라갑니다(드래그하면 따라가기 멈춤).</div>';
   }
   panel.addEventListener('click', (e) => {
     if (e.target.closest('#skyNow .hd')) { panel.classList.toggle('folded'); lastList = 0; return; }   // 제목을 누르면 접기/펴기
@@ -209,12 +209,13 @@ export function createGroundView(d) {
     if (pb) {
       const p = passes[Number(pb.dataset.pass)]; if (!p) return;
       d.jumpTo(p.start - 60000, p.s);
-      st.az = p.azMax; st.alt = Math.min(80, Math.max(15, p.max * 0.8));   // 최고점 쪽 하늘을 넓게
+      st.az = p.azStart; st.alt = 12;   // 떠오를 쪽 지평선을 보며 기다림
+      st.track = p.s; panel.classList.add('folded');   // 하늘을 가리지 않게 목록은 접음
       lastList = 0; lastTrackReal = 0; return;
     }
     const id = e.target.closest('.row[data-id]')?.dataset.id;
     const s = id && d.sats.find((x) => String(x.id) === id);
-    if (s) { d.onPick(s); aimAt(s); lastTrackReal = 0; }
+    if (s) { d.onPick(s); aimAt(s); st.track = s; lastTrackReal = 0; }
   });
 
   function aimAt(s) {
@@ -231,6 +232,7 @@ export function createGroundView(d) {
   el.addEventListener('pointermove', (e) => {
     if (!st.on || !drag) return;
     const k = st.fov / el.clientHeight;                              // 화면 1픽셀 = 몇 도
+    st.track = null;                                                  // 직접 둘러보면 따라가기 멈춤
     st.az = (st.az - (e.clientX - drag.x) * k + 360) % 360;
     st.alt = Math.max(-10, Math.min(89, st.alt + (e.clientY - drag.y) * k));
     drag = { x: e.clientX, y: e.clientY };
@@ -258,7 +260,7 @@ export function createGroundView(d) {
   }
   function exit() {
     if (!st.on) return;
-    st.on = false; passJob++;
+    st.on = false; passJob++; st.track = null;
     for (const m of marks) m.o.visible = false;
     ground.visible = horizon.visible = tracks.visible = geoLabel.visible = false;
     panel.hidden = true; day.style.display = 'none';
@@ -285,6 +287,13 @@ export function createGroundView(d) {
     const hp = horizon.geometry.attributes.position.array;
     for (let i = 0; i < HN; i++) { dirOf(i * 360 / HN, 0, look).multiplyScalar(0.5).add(site); hp[i * 3] = look.x; hp[i * 3 + 1] = look.y; hp[i * 3 + 2] = look.z; }
     horizon.geometry.attributes.position.needsUpdate = true;
+    if (st.track) {
+      const a = lookAngles(st.track);
+      if (a && a.alt > 2) {
+        const dAz = ((a.az - st.az + 540) % 360) - 180;
+        st.az = (st.az + dAz * 0.15 + 360) % 360; st.alt += (Math.min(80, a.alt) - st.alt) * 0.15;
+      }   // 아직 안 떴거나 이미 졌으면 그대로 둠
+    }
     updateList(now);
     updateTracks(now);
     if (passBase && Math.abs(d.getMs() - passBase.ms) > 6 * 3600000) computePasses();   // 시각을 크게 옮기면 예보를 다시 계산

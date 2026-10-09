@@ -208,6 +208,18 @@ function select(id) {
   vgCards.setSelected(id);
   jwCards.setSelected(id);
   for (const it of [...bodies.all(), ...moons.all(), ...comets.all(), ...asteroids.all(), ...voyager.all(), ...jwst.all()]) it.label.element.classList.toggle('sel', it.def.id === id);
+  bodyCard.hidden = !id; fillBodyCard();
+}
+// 화면 위 정보창: 선택한 천체 카드(패널 속)의 내용을 그대로 보여 준다 (폰에서는 패널이 닫혀 있어도 보이게)
+const bodyCard = Object.assign(document.createElement('div'), { id: 'bodyCard', className: 'infocard popup', hidden: true });
+$('stage').appendChild(bodyCard);
+bodyCard.addEventListener('click', (e) => { if (e.target.closest('[data-act=close]')) bodyCard.hidden = true; });
+function fillBodyCard() {
+  if (bodyCard.hidden) return;
+  const c = document.querySelector('.card.sel'); if (!c) { bodyCard.hidden = true; return; }
+  const html = `<button class="closex" data-act="close" title="닫기" type="button">✕</button><h3>${c.querySelector('.name').innerHTML}</h3><div class="stats">${c.querySelector('.stats').innerHTML}</div>` +
+    '<div class="note">두 번 누르면(더블클릭) 가까이 가서 따라갑니다.</div>';
+  if (bodyCard.innerHTML !== html) bodyCard.innerHTML = html;
 }
 
 const planetById = new Map(PLANETS.map((p) => [p.id, p]));
@@ -257,6 +269,7 @@ function updateCards(nowMs) {
       `<a class="navbtn to-tel" style="margin:6px 0 0" href="telescope.html?mode=J" onclick="event.stopPropagation()">🔭 우주망원경 시뮬레이터에서 보기</a>` +
       (jw.group.visible ? '' : '<br><span style="color:var(--dim)">꺼져 있음 (표시 옵션에서 켜세요)</span>'));
   }
+  fillBodyCard();
   // 하단 상태: 선택한 천체의 지구 거리
   const st = $('status');
   const earthAU = bodies.items.get('earth').au;
@@ -265,7 +278,7 @@ function updateCards(nowMs) {
   const ao = selectedId && asteroids.items.get(selectedId);
   const vo = selectedId && voyager.items.get(selectedId);
   if (selectedId === 'jwst') {
-    st.textContent = '선택: 제임스웹 우주망원경 · 지구와의 거리 약 0.01 AU (150만 km, L2) · 카드의 버튼으로 우주망원경 시뮬레이터 열기';
+    st.textContent = '선택: 제임스웹 우주망원경 · 지구와의 거리 약 0.01 AU (150만 km, L2) · 정보창의 버튼으로 우주망원경 시뮬레이터 열기';
   } else if (vo) {
     st.textContent = vo.state.visible ? `선택: ${vo.def.name} · 지구와의 거리 ${vo.au.distanceTo(earthAU).toFixed(2)} AU` : `선택: ${vo.def.name} (발사 전)`;
   } else if (ao) {
@@ -437,6 +450,16 @@ function trailPositions() {
   return trailMap;
 }
 let prev = performance.now();
+// 작은 천체(혜성·소행성)와 제임스웹 이름표는 고른 것이나 카메라가 가까이 갔을 때만 (첫 화면 가운데가 이름으로 뭉치지 않게)
+const NEAR_LABEL = 8;   // 화면 단위(선형 스케일에서 AU)
+function tidyLabels() {
+  const cam = camera.position;
+  for (const it of [...comets.all(), ...asteroids.all()]) {
+    if (!it.label.visible || it.def.id === selectedId || it.data?.kind === 'interstellar') continue;
+    if (cam.distanceTo(it.group.position) > NEAR_LABEL) it.label.visible = false;
+  }
+  for (const it of jwst.all()) if (it.label.visible && it.def.id !== selectedId && cam.distanceTo(it.group.position) > 2) it.label.visible = false;
+}
 function frame(now) {
   const dt = Math.min((now - prev) / 1000, 0.1);
   prev = now;
@@ -447,6 +470,7 @@ function frame(now) {
   asteroids.update(clock.date, opts);
   voyager.update(clock.date, opts, bodies.positionOf('earth'), camera, renderer.domElement.clientHeight);
   jwst.update(opts.jwst, opts.label, bodies.items.get('earth').au, bodies.positionOf('earth'), Math.max(moons.outerOrbit('earth') * 1.6, bodies.items.get('earth').radius * 4));
+  tidyLabels();
   belt.update(clock.date, opts.belt);
   trails.update(clock.ms, opts, trailPositions());
   updateFocus(dt);
@@ -462,3 +486,10 @@ requestAnimationFrame(frame);
 
 // 개발·검증용 접근점
 window.solar = { clock, bodies, moons, comets, asteroids, belt, voyager, voyagerView, world, orbits, trails, select, focusOn, resetView, applyScaleMode, THREE };
+// 첫 화면 안내 (7초 뒤 또는 화면을 처음 누르면 사라짐)
+{
+  const tip = Object.assign(document.createElement('div'), { id: 'firstTip', textContent: '천체를 누르면 정보창, 두 번 누르면 가까이 갑니다 · 드래그 = 돌리기, 휠·두 손가락 = 확대' });
+  $('stage').appendChild(tip);
+  const hide = () => tip.classList.add('gone');
+  setTimeout(hide, 7000); renderer.domElement.addEventListener('pointerdown', hide, { once: true });
+}

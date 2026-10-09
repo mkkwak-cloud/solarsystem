@@ -36,10 +36,11 @@
         <label><input type="radio" name="spd" value="600"><span>600x</span></label>
         <label><input type="radio" name="spd" value="3600"><span>3600x</span></label>
       </div>
-      <div class="row" style="margin-top:6px">
-        <span class="hint" id="speedHint" style="margin:0"></span>
-        <span><button id="nowBtn" type="button">지금으로</button> <button id="pauseBtn" type="button">일시정지</button></span>
+      <div class="row" style="margin-top:6px; gap:6px">
+        <button id="nowBtn" type="button" style="flex:1">지금으로</button>
+        <button id="pauseBtn" type="button" style="flex:1">일시정지</button>
       </div>
+      <div class="hint" id="speedHint"></div>
     </section>
 
     <section>
@@ -99,7 +100,8 @@
     <div id="infoCard" class="infocard popup" hidden></div>
     <div id="loading"><div id="loadingText">지구 텍스처 불러오는 중…</div><div id="loadingBar"><div id="loadingFill"></div></div></div>
     <div id="status"></div>
-    <div id="credits">궤도 정보: CelesTrak (위성), NASA JPL Horizons (다누리) · 위치 계산: satellite.js(SGP4), astronomy-engine · 지구·달 텍스처: Solar System Scope (CC BY 4.0), USGS/NASA · 위성 위치는 어림값(궤도 정보가 오래될수록 오차 증가) · 위성 설명은 공개 자료 정리, 확실하지 않은 칸은 "확인 중"<br><b class="maker">만든 사람 : MANKING</b></div>
+    <div id="credits"><details><summary>출처·안내</summary>궤도 정보: CelesTrak (위성), NASA JPL Horizons (다누리) · 위치 계산: satellite.js(SGP4), astronomy-engine · 지구·달 텍스처: Solar System Scope (CC BY 4.0), USGS/NASA · 위성 위치는 어림값(궤도 정보가 오래될수록 오차 증가) · 위성 설명은 공개 자료 정리, 확실하지 않은 칸은 "확인 중"</details><b class="maker">만든 사람 : MANKING</b></div>
+    <script>if (matchMedia("(min-width: 801px)").matches) document.querySelector("#credits details").open = true;</script>
   </main>
 
   <script type="module" src="src/sat/main.js"></script>
