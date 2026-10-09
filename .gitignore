@@ -3,4 +3,5 @@ Thumbs.db
 _trash/
 *.tmp
 raw/
-.claude/
+.claude/*
+!.claude/agents/
