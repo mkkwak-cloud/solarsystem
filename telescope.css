@@ -104,3 +104,8 @@ details.sec>summary::after{content:'▸';margin-left:auto;color:var(--mu);transi
 details.sec[open]>summary::after{transform:rotate(90deg)}
 details.more{margin:4px 0}
 details.more>summary{cursor:pointer;font-size:11.5px;color:var(--ac2);padding:4px 0}
+/* 폰: 거울 맞추기 별 그림을 띄우는 작은 창 */
+#alnFloat{position:fixed;right:8px;z-index:6;width:132px;background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:4px 4px 5px;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+#alnFloat .ft{font-size:10.5px;color:var(--mu);text-align:center;margin-bottom:2px}
+#alnFloat canvas{width:100%!important;max-width:none!important;margin:0 0 3px!important}
+#alnFloatTxt{font-size:11px;text-align:center;color:var(--ac)}

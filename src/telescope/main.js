@@ -864,7 +864,29 @@ function drawAlign() {
   const segOk = spread < 0.5 && AL.err.every(e => Math.abs(e.p) < 0.05), why = segOk && Math.abs(AL.defocus) > 0.15 ? '초점이 안 맞음' : segOk && anyPol ? '거울 표면(연마) 흠' : '조각들이 거울 하나처럼 동작하지 않음';
   const s = ps.strehl, v = s >= 0.8 ? ['ok', '또렷함 — 제임스웹 목표 수준(파장 2 µm에서 0.8 이상)'] : s >= 0.3 ? ['', `조금 흐림 — ${why}`] : ['bad', `흐림 — ${why}`];
   const rmsTxt = AL.tab === 'pol' ? `<p class="easy">거울 표면 오차 ${pupilRmsNm(pup, lamNm).toFixed(0)} nm rms (보는 빛 ${(lamNm / 1000).toFixed(2)} µm 기준) · 지도 색 범위 ±${mapMax.toFixed(0)} nm(가장 높은 곳이 진한 빨강) · 참고: 제임스웹 조각 약 20 nm, 외계 지구 촬영용(HWO)은 이보다 훨씬 작아야 함</p>` : '';
+  if (!alFloat.hidden) $('alnFloatTxt').textContent = `선명도 ${s.toFixed(2)}`;
   $('alnStat').innerHTML = rmsTxt + `<p class="verdict ${v[0]}">선명도 ${s.toFixed(2)} (1 = 완벽) · ${v[1]}</p><p class="easy">${zoom ? '가운데를 크게 확대한 그림입니다.' : '넓게 본 그림입니다(점 하나 = 거울 조각 하나가 만든 별 모습).'} 색이 밝을수록 빛이 많이 모인 곳.</p>`;
+}
+// 폰: 거울 맞추기를 펼치면 별 그림(과 연마 지도)을 설계창 밖 오른쪽 위 작은 창으로 옮겨, 아래에서 조작하는 동안에도 보이게
+const alFloat = (() => {
+  const f = document.createElement('div'); f.id = 'alnFloat'; f.hidden = true;
+  f.innerHTML = '<div class="ft">별 모습</div><div id="alnFloatBody"></div><div id="alnFloatTxt"></div>';
+  document.body.appendChild(f); return f;
+})();
+const alHome = {};
+function alPlace() {
+  const sec = $('alnSec'); if (!sec) return;
+  const want = window.innerWidth < 760 && sec.open && sec.style.display !== 'none' && !$('panel').classList.contains('hide') && S.view === 'tel';
+  for (const id of ['alnC', 'alnM']) {
+    const el = $(id); if (!el) continue;
+    if (!alHome[id]) alHome[id] = { parent: el.parentNode, next: el.nextSibling };
+    const go = want && (id === 'alnC' || AL.tab === 'pol');   // 연마 지도는 연마 탭에서만
+    if (go) { if (el.parentNode !== $('alnFloatBody')) $('alnFloatBody').appendChild(el); }
+    else if (el.parentNode !== alHome[id].parent) alHome[id].parent.insertBefore(el, alHome[id].next);
+  }
+  alFloat.hidden = !want;
+  if (want) alFloat.style.top = ($('top').getBoundingClientRect().bottom + 6) + 'px';
+  AL.dirty = true;
 }
 function drawPolMap(pup, lamNm) {   // 거울 표면 높낮이 지도(파면 nm): 빨강 = 높음, 파랑 = 낮음
   const cv = $('alnM'); if (!cv) return;
@@ -900,6 +922,7 @@ function alSync() {
   if (!AL.anim) { $('alnX').value = e.dx; $('alnY').value = e.dy; $('alnP').value = e.p; $('alnF').value = AL.defocus; }
   $('alnXV').textContent = e.dx.toFixed(1); $('alnYV').textContent = e.dy.toFixed(1); $('alnPV').textContent = e.p.toFixed(2) + ' 파장';
   $('alnFV').textContent = AL.defocus.toFixed(2) + ' 파장'; $('alnSel').value = AL.sel;
+  if (typeof alPlace === 'function' && !alFloat.hidden) alPlace();
   AL.dirty = true;
 }
 function alApply3D() {   // 조각 기울기·높이, 부경 위치를 3D에 과장해서 보여 줌
@@ -1203,7 +1226,7 @@ const CE = {};
   es.addEventListener('change', () => { Object.assign(S, EACS[es.value], { eac: es.value }); syncUI(); build(false); });
   $('pis').value = S.pisLog; $('tt').value = S.ttLog; $('iwa').value = S.iwa; $('psfMode').value = S.psfMode;
   for (const id of ['advPsf', 'advBud', 'advWrap']) $(id).addEventListener('toggle', () => schedulePSF());
-  $('alnSec').addEventListener('toggle', () => { AL.dirty = true; });
+  $('alnSec').addEventListener('toggle', () => { alPlace(); });
   if (window.innerWidth >= 760) $('secStats').open = true;   // 컴퓨터: 성능 요약도 펼쳐 둠 (폰은 설계 값만)
   for (const k in TARGETS) $('budT').add(new Option(TARGETS[k].name, k));
   $('budT').value = S.budTarget; $('budT').addEventListener('change', e => { S.budTarget = e.target.value; updateBudget(); });
@@ -1289,6 +1312,7 @@ function syncUI() {
   $('info').innerHTML = INFO[infoKey()]; $('info').style.display = '';
   document.querySelectorAll('.tab[data-m]').forEach(b => { const on = b.dataset.m === infoKey(); b.classList.toggle('on', on); if (on && b.scrollIntoView && window.innerWidth < 760) b.scrollIntoView({ block: 'nearest', inline: 'center' }); });
   syncBar();
+  if (typeof alPlace === 'function') alPlace();
 }
 let bt = null;
 function scheduleBuild() { clearTimeout(bt); bt = setTimeout(() => { build(false); }, 120); }
@@ -1318,7 +1342,7 @@ eb.onclick = () => toggleView('earth'); lb.onclick = () => toggleView('leo');
 ib.onclick = () => { const i = $('info'); i.style.display = i.style.display === 'none' ? '' : 'none'; };
 { const sep = document.createElement('span'); sep.className = 'sep'; sep.title = '왼쪽: 망원경 종류 · 오른쪽: 보기 전환'; tabs.appendChild(sep); }
 tabs.appendChild(eb); tabs.appendChild(lb); tabs.appendChild(ib);
-$('gear').onclick = () => { $('panel').classList.toggle('hide'); syncGear(); setTimeout(resize, 300); };
+$('gear').onclick = () => { $('panel').classList.toggle('hide'); syncGear(); alPlace(); setTimeout(resize, 300); };
 function syncGear() { $('gear').textContent = $('panel').classList.contains('hide') ? '⚙ 설계 열기' : '⚙ 설계 닫기'; }
 syncGear();
 $('play').onclick = () => { $('info').style.display = 'none'; if (S.t >= 1) S.t = 0; S.playing = !S.playing; syncBar(); };
@@ -1435,7 +1459,7 @@ const INFO_VIEW = {
   earth: '<b>지구에서 본 심우주</b> — 지구 표면에 서서 태양 반대쪽(밤하늘)을 바라본 시점입니다. 가까운 달 → 150만 km 밖 L2의 제임스웹 망원경(JWST 실사 모델) → 수십 광년~130억 광년 천체 순으로 거리가 멀어집니다. 점선 하늘색은 망원경의 관측 시선입니다. 드래그=둘러보기, 핀치/휠=시야각 확대·축소. (거리는 축척 아님)',
 };
 function setView(v) {
-  S.view = v;
+  S.view = v; setTimeout(() => alPlace(), 0);
   $('bar').style.display = v === 'tel' ? '' : 'none';   // 전개 막대는 망원경 화면에서만 의미 있음
   if (v === 'earth') { if (!S.jwst) { S.prevMode = S.mode; setMode('J'); } S.t = 1; S.playing = false; syncBar(); }
   else if (S.prevMode && S.jwst) { const pm = S.prevMode; S.prevMode = null; if (v === 'tel') setMode(pm); }
@@ -1530,7 +1554,7 @@ function resize() {
   if (dx || dy) camera.setViewOffset(w, h, dx, dy, w, h); else camera.clearViewOffset();
   camera.updateProjectionMatrix();
 }
-window.addEventListener('resize', resize); resize();
+window.addEventListener('resize', () => { resize(); alPlace(); }); resize();
 if (S.view === 'tel' && ctx.extent) fitCamera();   // 첫 화면은 빈 곳 크기를 안 뒤 다시 맞춤
 if (window.ResizeObserver) new ResizeObserver(() => resize()).observe($('top'));   // 위쪽 설명을 닫거나 열면 중심 다시 맞춤
 let last = performance.now();
