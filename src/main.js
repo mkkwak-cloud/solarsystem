@@ -52,7 +52,7 @@ const belt = createBelt(world.scene);
 let voyagerData = { craft: [] };
 try { voyagerData = await loadVoyagerData(); } catch (e) { console.warn('보이저 데이터를 읽지 못했습니다:', e.message); }
 let voyagerModelStatus = '';
-// 제임스웹 (L2) — 카드에서 우주망원경 시뮬레이터로 이동
+// 제임스웹 (L2) — 카드에서 우주망원경 설계 시뮬레이터로 이동
 const jwst = createJwst(world.scene);
 const voyager = createVoyager(world.scene, voyagerData, (st) => { voyagerModelStatus = st; if (st === 'fallback') console.warn('보이저 3D 모델을 못 읽어 기본 도형으로 대신합니다.'); });
 
@@ -266,7 +266,7 @@ function updateCards(nowMs) {
   {
     const jw = jwst.items.get('jwst');
     jwCards.setHtml('jwst', `태양–지구 L2 (지구에서 태양 반대쪽 약 150만 km, 화면 거리는 과장)<br>태양과의 거리: ${jw.au.length().toFixed(3)} AU · 2021-12-25 발사<br>` +
-      `<a class="navbtn to-tel" style="margin:6px 0 0" href="telescope.html?mode=J" onclick="event.stopPropagation()">🔭 우주망원경 시뮬레이터에서 보기</a>` +
+      `<a class="navbtn to-tel" style="margin:6px 0 0" href="telescope.html?mode=J" onclick="event.stopPropagation()">🔭 우주망원경 설계 시뮬레이터에서 보기</a>` +
       (jw.group.visible ? '' : '<br><span style="color:var(--dim)">꺼져 있음 (표시 옵션에서 켜세요)</span>'));
   }
   fillBodyCard();
@@ -278,7 +278,7 @@ function updateCards(nowMs) {
   const ao = selectedId && asteroids.items.get(selectedId);
   const vo = selectedId && voyager.items.get(selectedId);
   if (selectedId === 'jwst') {
-    st.textContent = '선택: 제임스웹 우주망원경 · 지구와의 거리 약 0.01 AU (150만 km, L2) · 정보창의 버튼으로 우주망원경 시뮬레이터 열기';
+    st.textContent = '선택: 제임스웹 우주망원경 · 지구와의 거리 약 0.01 AU (150만 km, L2) · 정보창의 버튼으로 우주망원경 설계 시뮬레이터 열기';
   } else if (vo) {
     st.textContent = vo.state.visible ? `선택: ${vo.def.name} · 지구와의 거리 ${vo.au.distanceTo(earthAU).toFixed(2)} AU` : `선택: ${vo.def.name} (발사 전)`;
   } else if (ao) {

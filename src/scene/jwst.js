@@ -1,6 +1,6 @@
 // 제임스웹 우주망원경(JWST): 태양-지구 L2 (지구에서 태양 반대쪽 약 150만 km = 0.01 AU).
 // 실제 거리는 지구를 크게 그린 반지름보다 작아서, 화면에서는 달 궤도보다 조금 바깥(거리 과장)에 그린다. 방향(태양 반대쪽)은 실제와 같다.
-// 카드에서 우주망원경 시뮬레이터(telescope.html)로 이동할 수 있다.
+// 카드에서 우주망원경 설계 시뮬레이터(telescope.html)로 이동할 수 있다.
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 

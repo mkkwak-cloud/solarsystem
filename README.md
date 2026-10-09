@@ -33,7 +33,7 @@
 ```
 index.html, style.css      화면 (태양계)
 satellites.html/.css       국내 위성 추적 페이지 (지구 시점: 서울 등 관측 지점에서 하늘 보기)
-telescope.html/.css        우주망원경 시뮬레이터 페이지 (코드: src/telescope/)
+telescope.html/.css        우주망원경 설계 시뮬레이터 페이지 (코드: src/telescope/)
 src/data/                  표시 설정, 행성 값, 자전 요소
 src/sim/                   시계, 행성·위성·혜성·소행성·보이저 위치 계산, 케플러 풀이, 거리 스케일, 자전
 src/scene/                 3D 천체, 궤도선, 꼬리, 위성 줌 연동, 소행성대, 보이저
@@ -46,7 +46,7 @@ scripts/                   자료·텍스처 수집/변환 도구
 plan/                      계획·결정·검증 기록
 ```
 
-## 우주망원경 시뮬레이터 (telescope.html)
+## 우주망원경 설계 시뮬레이터 (telescope.html)
 
 - 망원경을 설계값(구경·분할거울·초점비·파장 등)으로 만들고 전개 과정·광선 경로·성능을 보여 줍니다. 모드: 접이식(JWST·Roman), 우주 조립형, HWO형, 제임스웹 실사(NASA 3D 모델), 한국형 3.5 m(KASI 3.5mST 백서).
 - ⚙ 설계 패널: 별 회절상(PSF)·분할경 오차, 코로나그래프 암부 대비, 지구형 행성 검출 예산, 차양막 비교(JWST·SALTUS·V-groove)와 층별 온도.

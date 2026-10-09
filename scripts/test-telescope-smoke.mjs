@@ -56,7 +56,7 @@ globalThis.__THREE = new Proxy({}, {
     if (k === 'WebGLRenderer') return class { constructor() { this.domElement = {}; } setPixelRatio() { } setSize() { } render() { renders++; } };
     if (k === 'PMREMGenerator') return class { fromScene() { return { texture: {} }; } };
     if (k === 'Scene') return class extends Obj { };
-    if (k === 'PerspectiveCamera') return class extends Obj { updateProjectionMatrix() { } };
+    if (k === 'PerspectiveCamera') return class extends Obj { updateProjectionMatrix() { } setViewOffset() { } clearViewOffset() { } };
     if (k === 'DirectionalLight' || k === 'HemisphereLight') return class extends Obj { };
     if (k === 'Color') return class { multiplyScalar() { return this; } };
     if (k === 'CanvasTexture') return class { constructor(c) { this.image = c; this.repeat = { set() { } }; } };
@@ -71,8 +71,9 @@ globalThis.__RE = class { };
 const els = {};
 function el() {
   const e = { style: {}, dataset: {}, innerHTML: '', textContent: '', value: '', checked: false, handlers: {}, children: [],
-    classList: { toggle() { }, add() { }, remove() { } },
+    classList: { toggle() { }, add() { }, remove() { }, contains() { return false; } },
     addEventListener(ev, fn) { this.handlers[ev] = fn; }, appendChild(c) { this.children.push(c); }, add() { },
+    getBoundingClientRect() { return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }; }, offsetWidth: 330,
     querySelector() { return el(); }, getContext() { return new Proxy({}, { get: (o, k) => (k in o ? o[k] : k === 'createImageData' ? (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }) : () => ({ addColorStop() { } })), set: (o, k, v) => { o[k] = v; return true; } }); } };
   return e;
 }

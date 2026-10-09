@@ -95,8 +95,9 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070d);
 const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 2e5);
+let freeK = 1;   // 폰에서 위쪽 글·설계창을 뺀 빈 곳에 맞춘 거리 배율 (resize 에서 계산)
 const controls = new Orbit(camera, canvas);
-function hidePopups() { if (window.innerWidth < 760) { $('info').style.display = 'none'; $('panel').classList.add('hide'); } }   // 데스크톱은 돌려 보다가 닫히지 않게
+function hidePopups() { if (window.innerWidth < 760) $('info').style.display = 'none'; }   // 폰: 설명만 닫음(설계창은 기본으로 계속 보임)
 controls.onTap = hidePopups;
 $('info').addEventListener('click', () => { $('info').style.display = 'none'; });
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -560,7 +561,7 @@ function fitCamera() {
   const r = ctx.extent / 2, c = ctx.center;
   holder.position.set(0, 0, 0); holder.rotation.set(0, 0, 0); holder.scale.setScalar(1);
   camera.near = Math.max(0.05, r * 0.01);
-  const k = camera.aspect < 1 ? Math.max(1, 0.78 / camera.aspect) : 1;   // 세로 화면(휴대폰)은 더 멀리
+  const k = (camera.aspect < 1 ? Math.max(1, 0.78 / camera.aspect) : 1) * freeK;   // 세로 화면(휴대폰)·설계창이 있으면 더 멀리
   camera.position.set(c.x + 1.25 * r * k, c.y + 0.9 * r * k, c.z + 1.6 * r * k);
   controls.target.copy(c); camera.updateProjectionMatrix();
 }
@@ -998,8 +999,9 @@ eb.onclick = () => toggleView('earth'); lb.onclick = () => toggleView('leo');
 ib.onclick = () => { const i = $('info'); i.style.display = i.style.display === 'none' ? '' : 'none'; };
 { const sep = document.createElement('span'); sep.className = 'sep'; sep.title = '왼쪽: 망원경 종류 · 오른쪽: 보기 전환'; tabs.appendChild(sep); }
 tabs.appendChild(eb); tabs.appendChild(lb); tabs.appendChild(ib);
-$('gear').onclick = () => $('panel').classList.toggle('hide');
-if (window.innerWidth < 760) $('panel').classList.add('hide');
+$('gear').onclick = () => { $('panel').classList.toggle('hide'); syncGear(); setTimeout(resize, 300); };
+function syncGear() { $('gear').textContent = $('panel').classList.contains('hide') ? '⚙ 설계 열기' : '⚙ 설계 닫기'; }
+syncGear();
 $('play').onclick = () => { $('info').style.display = 'none'; if (S.t >= 1) S.t = 0; S.playing = !S.playing; syncBar(); };
 $('tl').addEventListener('input', e => { S.t = +e.target.value / 1000; S.playing = false; syncBar(); });
 function syncBar() {
@@ -1127,7 +1129,7 @@ function setView(v) {
     $('info').innerHTML = INFO_VIEW.earth; $('info').style.display = '';
   } else if (v === 'leo') {
     applyHolderLEO(); sun.position.set(-1, 0, 0); camera.near = 0.05;
-    const k = camera.aspect < 1 ? Math.max(1, 0.85 / camera.aspect) : 1;   // 세로 화면(휴대폰)은 더 멀리
+    const k = (camera.aspect < 1 ? Math.max(1, 0.85 / camera.aspect) : 1) * freeK;   // 세로 화면(휴대폰)은 더 멀리
     camera.position.set(-9 * k, 10 * k, 32 * k); controls.target.set(-3, -0.5, 0); camera.updateProjectionMatrix();
     $('info').innerHTML = INFO_VIEW.leo; $('info').style.display = '';
   } else { sun.position.set(0.4, 1, 0.7); fitCamera(); $('info').innerHTML = INFO[infoKey()]; }
@@ -1195,9 +1197,22 @@ function updateLEO(time) {
 // ---------- 루프 ----------
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  // 망원경이 위쪽 글·설계창에 가리지 않게, 남는 빈 곳의 가운데로 화면 중심을 옮김
+  const pn = $('panel'), open = !pn.classList.contains('hide');
+  let dx = 0, dy = 0;
+  freeK = 1;
+  if (w < 760) {
+    const top = $('top').getBoundingClientRect().bottom, bot = open ? pn.getBoundingClientRect().top : $('bar').getBoundingClientRect().top;
+    dy = h / 2 - (top + bot) / 2;
+    if (bot > top) freeK = Math.min(1.6, Math.max(1, 0.55 * h / (bot - top)));   // 빈 곳이 좁을수록 멀리서 봄
+  } else if (open) dx = pn.offsetWidth / 2;
+  if (dx || dy) camera.setViewOffset(w, h, dx, dy, w, h); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize); resize();
+if (S.view === 'tel' && ctx.extent) fitCamera();   // 첫 화면은 빈 곳 크기를 안 뒤 다시 맞춤
+if (window.ResizeObserver) new ResizeObserver(() => resize()).observe($('top'));   // 위쪽 설명을 닫거나 열면 중심 다시 맞춤
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
