@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>우주망원경 시뮬레이터</title>
+  <link rel="icon" type="image/png" href="icons/solar-192.png">
+  <meta name="theme-color" content="#05070d">
+  <link rel="stylesheet" href="telescope.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">
+  <h1>심우주 망원경 설계·3D 시뮬레이터<small>개략 설계 도구 · 정밀 구조/열 해석 아님</small></h1>
+  <div class="navs"><a class="navbtn to-solar" href="index.html">☀ 태양계 시뮬레이터</a><a class="navbtn to-sat" href="satellites.html">🛰 국내 위성 추적</a></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="info"></div>
+</div>
+<button class="btn" id="gear">⚙ 설계</button>
+<aside id="panel"></aside>
+<div id="bar">
+  <button class="btn" id="play">▶ 재생</button>
+  <input type="range" id="tl" min="0" max="1000" value="1000">
+  <span class="lab" id="tlab"></span>
+</div>
+<div id="err"><div><h2 style="margin:0 0 8px">3D 라이브러리를 불러오지 못했습니다</h2><p style="color:var(--mu)">vendor/three 폴더가 있는지 확인하고, 서버(py -m http.server 8000)로 열어 주세요.</p></div></div>
+<script type="module" src="src/telescope/main.js"></script>
+</body>
+</html>

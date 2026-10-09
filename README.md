@@ -1,6 +1,6 @@
 # 태양계 시뮬레이터 (3D)
 
-브라우저에서 보는 3D 태양계입니다. 행성 8개, 위성 21개, 소행성·왜행성 9개, 혜성 21개(성간천체 3I/ATLAS 포함), 보이저 1·2호를 실제 천문 자료로 계산해 보여 줍니다. 요구사항은 `PRD.md`(v0.4)입니다.
+브라우저에서 보는 3D 태양계입니다. 같은 폴더에 국내 위성 추적(`satellites.html`)과 우주망원경 설계 시뮬레이터(`telescope.html`) 페이지도 있습니다. 행성 8개, 위성 21개, 소행성·왜행성 9개, 혜성 21개(성간천체 3I/ATLAS 포함), 보이저 1·2호를 실제 천문 자료로 계산해 보여 줍니다. 요구사항은 `PRD.md`(v0.4)입니다.
 
 ## 실행 방법
 
@@ -31,18 +31,27 @@
 ## 폴더 구조
 
 ```
-index.html, style.css      화면
+index.html, style.css      화면 (태양계)
+satellites.html/.css       국내 위성 추적 페이지
+telescope.html/.css        우주망원경 시뮬레이터 페이지 (코드: src/telescope/)
 src/data/                  표시 설정, 행성 값, 자전 요소
 src/sim/                   시계, 행성·위성·혜성·소행성·보이저 위치 계산, 케플러 풀이, 거리 스케일, 자전
 src/scene/                 3D 천체, 궤도선, 꼬리, 위성 줌 연동, 소행성대, 보이저
 src/ui/                    정보 카드
 data/                      사전 조회한 자료 (JSON): moons, comets, asteroids, voyager
 textures/ (+ fictional/)   텍스처 (출처: textures/CREDITS.md)
-models/                    보이저 3D 모델 (출처: models/CREDITS.md)
+models/                    보이저·위성·제임스웹 3D 모델 (출처: models/CREDITS.md)
 vendor/                    three.js, astronomy-engine
 scripts/                   자료·텍스처 수집/변환 도구
 plan/                      계획·결정·검증 기록
 ```
+
+## 우주망원경 시뮬레이터 (telescope.html)
+
+- 망원경을 설계값(구경·분할거울·초점비·파장 등)으로 만들고 전개 과정·광선 경로·성능을 보여 줍니다. 모드: 접이식(JWST·Roman), 우주 조립형, HWO형, 제임스웹 실사(NASA 3D 모델), 한국형 3.5 m(KASI 3.5mST 백서).
+- ⚙ 설계 패널: 별 회절상(PSF)·분할경 오차, 코로나그래프 암부 대비, 지구형 행성 검출 예산, 차양막 비교(JWST·SALTUS·V-groove)와 층별 온도.
+- 태양계 화면의 "제임스웹 (L2)" 카드 버튼으로도 열 수 있습니다(`telescope.html?mode=J`).
+- 개략 설계·교육용이며 정밀 구조·열·광학 해석이 아닙니다. 검증: `node scripts/test-telescope-calc.mjs`, `node scripts/test-telescope-smoke.mjs`.
 
 ## 자료·텍스처를 다시 받으려면 (개발용)
 

@@ -24,3 +24,8 @@
   - lro.glb ← Lunar Reconnaissance Orbiter (A) (달 궤도선 대표, 다누리 자리)
 - 국내 위성(아리랑·천리안·다누리 등)의 공개 3D 모델은 찾지 못했다. 그래서 같은 종류의 NASA 모델을 "대표 모형"으로 쓰고, 화면 카드에 "실제 모습이 아님"을 적는다. 그 밖의 위성은 본체+날개의 간단한 도형.
 - NASA 가 상품·서비스를 보증하는 것처럼 보이지 않게 하고 NASA 로고는 쓰지 않는다.
+
+## models/jwst/ (우주망원경 시뮬레이터의 제임스웹 실사 모델)
+- 출처: NASA 3D Resources (https://github.com/nasa/NASA-3D-Resources) → `3D Models/James Webb Space Telescope (B)/James Webb Space Telescope (B).glb` (Draco 압축).
+- 변환: Draco 해제 → 위치 Int16·법선 Int8 양자화 → gzip → base64 텍스트(jwstB.gz.b64.txt, 1.5 MB) + 메타(jwstB.json, 재질 그룹 36개·약 10만 삼각형·단위 m). 변환 도구는 Test1 저장소 deep-space-telescope-sim/tools/decode.cjs.
+- 이용 조건은 위 models/sat 과 같음(NASA 3D Resources, 출처 표기, NASA 로고 안 씀, 보증처럼 보이지 않게).

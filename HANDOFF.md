@@ -1,5 +1,11 @@
 # HANDOFF
 
+## 2026-10-09 추가: 우주망원경 시뮬레이터 통합 (phase-3)
+- telescope.html (세 번째 페이지) + src/telescope/ + models/jwst/. 태양계·위성 페이지와 상호 이동 버튼. 태양계 화면에 "제임스웹 (L2)" 표시와 카드 버튼(→ telescope.html?mode=J). 상세: plan/phase-3/02-구현.md
+- 시험: `node scripts/test-telescope-calc.mjs`, `node scripts/test-telescope-smoke.mjs` 통과, 헤드리스 크롬으로 세 페이지 확인. 커밋 안 함("cmt" 대기).
+- 망원경 시뮬레이터 원본은 Test1 저장소 deep-space-telescope-sim 이었고, 이제 이 저장소가 본진. 세부 설계 기록(논문 근거 등)은 Test1 의 deep-space-telescope-sim/CLAUDE.md 참고 — 필요하면 이 저장소로 옮길 것.
+- 다음 후보: 국내 위성 페이지에 3.5mST(지구궤도안) 표시, 망원경 페이지 PWA 아이콘·manifest, 망원경 문서(CLAUDE.md 내용) 이관.
+
 ## 2026-10-08 추가: 국내 위성 추적 페이지 (phase-2)
 - satellites.html (태양계 페이지와 상호 링크). 국내 위성 66개(CelesTrak) + 다누리(JPL Horizons -155). 위성 클릭/목록 → 정보 카드(이름·소유·용도·발사·궤도·실시간 위치). 상세: plan/phase-2/02-구현.md
 - 시험: puppeteer(Edge)로 클릭 선택·목록 선택·달 보기·폰 폭 확인함. 커밋 안 함("cmt" 대기). 아직 GitHub Pages 에 안 올림.

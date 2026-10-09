@@ -1,0 +1,53 @@
+/* 레이아웃: 전체 화면 3D 캔버스 위에 모드 탭·설계 패널·타임라인 바를 얹은 단일 화면 도구. 어두운 우주 배경 단일 테마 */
+:root{color-scheme:dark;--bg:#05070d;--pn:rgba(12,17,28,.92);--bd:#26324a;--tx:#e6ecf8;--mu:#8fa0bf;--ac:#ffb84d;--ac2:#4de3ff;--ok:#5ee38a;--bad:#ff6b6b;--ink2:#c9d4ea;--field:#0b1220;--row:#1a2438}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;overflow:hidden}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#top{position:fixed;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#top>*{pointer-events:auto}
+h1{font-size:15px;margin:0;font-weight:700;letter-spacing:-.2px;padding-right:84px}
+h1 small{color:var(--mu);font-weight:400;margin-left:6px;font-size:11px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab,.btn{background:var(--pn);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:7px 11px;font:inherit;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tab:focus-visible,.btn:focus-visible{outline:2px solid var(--ac2);outline-offset:2px}
+.tab.on{border-color:var(--ac);color:var(--ac)}
+.btn.on{border-color:var(--ac2);color:var(--ac2)}
+#info{max-width:560px;background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink2)}
+#info b{color:var(--ac)}
+#gear{position:fixed;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:5}
+#panel{position:fixed;right:0;top:calc(52px + env(safe-area-inset-top,0px));bottom:calc(70px + env(safe-area-inset-bottom,0px));width:330px;background:var(--pn);border-left:1px solid var(--bd);border-radius:12px 0 0 12px;padding:12px 16px;overflow:auto;transition:transform .25s}
+#panel.hide{transform:translateX(105%)}
+#panel h2{font-size:12px;color:var(--mu);font-weight:600;margin:14px 0 6px;letter-spacing:.3px}
+#panel h2:first-child{margin-top:0}
+.row{margin:8px 0}
+.row label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2)}
+.row label span:last-child{color:var(--ac);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--ac)}
+select{width:100%;background:var(--field);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:7px;font:inherit}
+.chk{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+td{padding:3px 0;border-bottom:1px solid var(--row);vertical-align:top}
+td:last-child{text-align:right;color:var(--ac);font-variant-numeric:tabular-nums}
+td.mu{color:var(--mu)}
+.ok{color:var(--ok)!important}.bad{color:var(--bad)!important}
+.note{font-size:11px;color:var(--mu);margin-top:10px}
+#bar{position:fixed;left:16px;right:16px;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:9px 12px}
+#bar input{flex:1;min-width:0}
+#bar .lab{font-size:12px;color:var(--mu);min-width:92px;text-align:right;font-variant-numeric:tabular-nums}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;text-align:center;z-index:20}
+@media (max-width:760px){
+ #panel{top:auto;bottom:calc(70px + env(safe-area-inset-bottom,0px));left:16px;right:16px;width:auto;max-height:46vh;border:1px solid var(--bd);border-radius:12px}
+ #panel.hide{transform:translateY(120%)}
+ #info{max-width:none;font-size:12px}
+ h1 small{display:none}
+ #gear{top:calc(8px + env(safe-area-inset-top,0px))}
+ #bar .lab{min-width:76px}
+}
+@media (min-width:761px){#top{padding-right:366px}}
+@media (prefers-reduced-motion:reduce){#panel{transition:none}}
+/* 다른 페이지로 가는 버튼 (태양계·위성 페이지와 같은 색 규칙: 주황=위성, 보라=태양계) */
+.navs{display:flex;gap:6px;flex-wrap:wrap}
+.navbtn{display:inline-block;font-weight:700;font-size:12.5px;text-decoration:none;padding:6px 10px;border-radius:8px;color:#fff}
+.navbtn.to-solar{background:#6741d9;border:1px solid #9775fa}.navbtn.to-solar:hover{background:#7048e8}
+.navbtn.to-sat{background:#e8590c;border:1px solid #ff922b}.navbtn.to-sat:hover{background:#f76707}
+

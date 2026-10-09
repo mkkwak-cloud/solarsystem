@@ -19,6 +19,7 @@ import { createBelt } from './scene/belt.js';
 import { ASTEROID_VISUAL } from './data/asteroids.js';
 import { createVoyager } from './scene/voyager.js';
 import { loadVoyagerData } from './sim/voyager.js';
+import { createJwst } from './scene/jwst.js';
 
 const $ = (id) => document.getElementById(id);
 const stageEl = $('stage');
@@ -51,6 +52,8 @@ const belt = createBelt(world.scene);
 let voyagerData = { craft: [] };
 try { voyagerData = await loadVoyagerData(); } catch (e) { console.warn('보이저 데이터를 읽지 못했습니다:', e.message); }
 let voyagerModelStatus = '';
+// 제임스웹 (L2) — 카드에서 우주망원경 시뮬레이터로 이동
+const jwst = createJwst(world.scene);
 const voyager = createVoyager(world.scene, voyagerData, (st) => { voyagerModelStatus = st; if (st === 'fallback') console.warn('보이저 3D 모델을 못 읽어 기본 도형으로 대신합니다.'); });
 
 // ---------- 패널: 시간 ----------
@@ -116,7 +119,7 @@ $('sizeScale').addEventListener('input', (e) => {
   asteroids.setSizeScale(m);
   $('sizeText').textContent = `x${m.toFixed(1)}`;
 });
-const opts = { orbit: true, label: true, tail: true, path: false, moons: true, comets: true, asteroids: true, belt: true, spin: true, voyager1: false, voyager2: false };
+const opts = { orbit: true, label: true, tail: true, path: false, moons: true, comets: true, asteroids: true, belt: true, spin: true, voyager1: false, voyager2: false, jwst: true };
 const bindOpt = (id, key, fn) => {
   const el = $(id);
   opts[key] = el.checked;
@@ -132,6 +135,7 @@ bindOpt('optAsteroids', 'asteroids');
 bindOpt('optBelt', 'belt');
 bindOpt('optVoyager1', 'voyager1');
 bindOpt('optVoyager2', 'voyager2');
+bindOpt('optJwst', 'jwst');
 bindOpt('optTail', 'tail');
 bindOpt('optPath', 'path');
 
@@ -190,8 +194,10 @@ $('astNone').addEventListener('click', () => { asteroids.setAllEnabled(false); f
 // 탐사선 카드
 const vgCards = createCards($('vgCards'), voyager.all().map((it) => it.def), selectCard, focusOn);
 for (const it of voyager.all()) vgCards.setBadge(it.def.id, '탐사선', 'comet');
+const jwCards = createCards($('vgCards'), jwst.all().map((it) => it.def), selectCard, focusOn);
+jwCards.setBadge('jwst', '우주망원경', 'comet');
 
-const itemOf = (id) => bodies.items.get(id) ?? moons.items.get(id) ?? comets.items.get(id) ?? asteroids.items.get(id) ?? voyager.items.get(id);
+const itemOf = (id) => bodies.items.get(id) ?? moons.items.get(id) ?? comets.items.get(id) ?? asteroids.items.get(id) ?? voyager.items.get(id) ?? jwst.items.get(id);
 
 function select(id) {
   selectedId = id;
@@ -200,7 +206,8 @@ function select(id) {
   cometCards.setSelected(id);
   astCards.setSelected(id);
   vgCards.setSelected(id);
-  for (const it of [...bodies.all(), ...moons.all(), ...comets.all(), ...asteroids.all(), ...voyager.all()]) it.label.element.classList.toggle('sel', it.def.id === id);
+  jwCards.setSelected(id);
+  for (const it of [...bodies.all(), ...moons.all(), ...comets.all(), ...asteroids.all(), ...voyager.all(), ...jwst.all()]) it.label.element.classList.toggle('sel', it.def.id === id);
 }
 
 const planetById = new Map(PLANETS.map((p) => [p.id, p]));
@@ -244,6 +251,12 @@ function updateCards(nowMs) {
       `<br>발사: ${it.data.launch}` + (s.extrapolated ? '<br><b>외삽값</b>: 자료 범위(2059년) 이후라 마지막 속도로 직선 연장한 값' : '') +
       (it.group.visible ? '' : '<br><span style="color:var(--dim)">꺼져 있음 (표시 옵션에서 켜세요)</span>'));
   }
+  {
+    const jw = jwst.items.get('jwst');
+    jwCards.setHtml('jwst', `태양–지구 L2 (지구에서 태양 반대쪽 약 150만 km, 화면 거리는 과장)<br>태양과의 거리: ${jw.au.length().toFixed(3)} AU · 2021-12-25 발사<br>` +
+      `<a class="navbtn to-tel" style="margin:6px 0 0" href="telescope.html?mode=J" onclick="event.stopPropagation()">🔭 우주망원경 시뮬레이터에서 보기</a>` +
+      (jw.group.visible ? '' : '<br><span style="color:var(--dim)">꺼져 있음 (표시 옵션에서 켜세요)</span>'));
+  }
   // 하단 상태: 선택한 천체의 지구 거리
   const st = $('status');
   const earthAU = bodies.items.get('earth').au;
@@ -251,7 +264,9 @@ function updateCards(nowMs) {
   const co = selectedId && comets.items.get(selectedId);
   const ao = selectedId && asteroids.items.get(selectedId);
   const vo = selectedId && voyager.items.get(selectedId);
-  if (vo) {
+  if (selectedId === 'jwst') {
+    st.textContent = '선택: 제임스웹 우주망원경 · 지구와의 거리 약 0.01 AU (150만 km, L2) · 카드의 버튼으로 우주망원경 시뮬레이터 열기';
+  } else if (vo) {
     st.textContent = vo.state.visible ? `선택: ${vo.def.name} · 지구와의 거리 ${vo.au.distanceTo(earthAU).toFixed(2)} AU` : `선택: ${vo.def.name} (발사 전)`;
   } else if (ao) {
     st.textContent = `선택: ${ao.def.name} (${ao.data.fullname}) · 지구와의 거리 ${ao.au.distanceTo(earthAU).toFixed(3)} AU`;
@@ -275,7 +290,7 @@ const v3 = new THREE.Vector3();
 function pickAt(clientX, clientY, reach = 18) {
   const rect = renderer.domElement.getBoundingClientRect();
   let best = null, bestD = reach; // 화면에서 reach(px) 이내
-  for (const it of [...bodies.all(), ...moons.all(), ...comets.all(), ...asteroids.all(), ...voyager.all()]) {
+  for (const it of [...bodies.all(), ...moons.all(), ...comets.all(), ...asteroids.all(), ...voyager.all(), ...jwst.all()]) {
     if (!it.group.visible) continue; // 줌 연동으로 숨겨진 위성은 건너뜀
     v3.copy(it.group.position).project(camera);
     if (v3.z > 1) continue;
@@ -431,6 +446,7 @@ function frame(now) {
   comets.update(clock.date, opts);
   asteroids.update(clock.date, opts);
   voyager.update(clock.date, opts, bodies.positionOf('earth'), camera, renderer.domElement.clientHeight);
+  jwst.update(opts.jwst, opts.label, bodies.items.get('earth').au, bodies.positionOf('earth'), Math.max(moons.outerOrbit('earth') * 1.6, bodies.items.get('earth').radius * 4));
   belt.update(clock.date, opts.belt);
   trails.update(clock.ms, opts, trailPositions());
   updateFocus(dt);

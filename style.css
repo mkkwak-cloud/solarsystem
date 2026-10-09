@@ -128,3 +128,5 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
 .navbtn.to-sat:hover { background: #f76707; }
 .navbtn.to-solar { background: #6741d9; border: 1px solid #9775fa; }
 .navbtn.to-solar:hover { background: #7048e8; }
+.navbtn.to-tel { background: #0b7285; border: 1px solid #3bc9db; }
+.navbtn.to-tel:hover { background: #0c8599; }
