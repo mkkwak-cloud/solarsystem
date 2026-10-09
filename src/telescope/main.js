@@ -72,7 +72,7 @@ function makeEnv(pm) {
   return pm.fromScene(room, 0.04).texture;
 }
 
-const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst', dN: 4, dColl: 2, dBase: 40, fType: 'mem', shGap: 1 };
+const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst', dN: 4, dColl: 2, dBase: 40, fType: 'mem', shGap: 1, mirrorReal: true };
 // 거울 맞추기 상태: err[조각 번호] = { dx, dy (별 상 위치 어긋남, λ/D), p (높이 어긋남, 파장 배수) }, defocus = 초점 어긋남(파장 배수)
 const AL = { pol: { rough: 0, quilt: 0, edge: 0, cold: 0 }, polLam: 550, tab: 'jw', base: [], err: [], step: 4, sel: 0, defocus: 0, anim: null, nSeg: -1, last: 0, dirty: true, view: null, touched: false };
 const DUR = { A: 16, B: 24, C: 14, D: 12, F: 12 };
@@ -169,7 +169,7 @@ const cellTex = mkTex(512, 400, (x, w, h) => {
 });
 const mliTex = crinkleTex('#c9a45a');
 const M = {
-  mirror: new THREE.MeshStandardMaterial({ color: 0xf2c355, metalness: 0.7, roughness: 0.32, emissive: 0x7a5410, envMapIntensity: 1.6, side: THREE.DoubleSide }),   // 금도금: 어느 각도에서도 금색이 보이게(완전 금속이면 어두운 배경만 비쳐 검게 보임)
+  mirror: new THREE.MeshStandardMaterial({ color: 0xf2c355, metalness: 1, roughness: 0.22, emissive: 0x2a1c05, side: THREE.DoubleSide }),   // 금도금(실감): 각도에 따라 번쩍임·어두워짐, 바탕에 어두운 금색이 남아 완전히 검지는 않음
   back: new THREE.MeshStandardMaterial({ color: 0x2b2f38, metalness: 0.6, roughness: 0.5 }),
   bp: new THREE.MeshStandardMaterial({ color: 0x3b4150, metalness: 0.5, roughness: 0.6 }),
   strut: new THREE.MeshStandardMaterial({ color: 0x9aa3b5, metalness: 0.8, roughness: 0.35 }),
@@ -187,6 +187,11 @@ const M = {
   ghost: new THREE.MeshBasicMaterial({ color: 0x4de3ff, wireframe: true, transparent: true, opacity: 0.22 }),
   line: new THREE.LineBasicMaterial({ color: 0x6b7388 }),
 };
+// 거울 반사 방식: 실감(각도에 따라 밝기 변함) ↔ 항상 금색
+function setMirrorLook(real) {
+  Object.assign(M.mirror, real ? { metalness: 1, roughness: 0.22, envMapIntensity: 1 } : { metalness: 0.7, roughness: 0.32, envMapIntensity: 1.6 });
+  M.mirror.emissive.setHex(real ? 0x2a1c05 : 0x7a5410); M.mirror.needsUpdate = true;
+}
 M.mirrorSel = new THREE.MeshStandardMaterial({ color: 0xff8a3d, metalness: 0.6, roughness: 0.3, emissive: 0x662200, side: THREE.DoubleSide });   // 거울 맞추기에서 고른 조각
 const rnd = (() => { let a = 12345; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
 
@@ -1178,6 +1183,7 @@ const CE = {};
     '<div class="chk"><input type="checkbox" id="shT"><label for="shT">차양막 층별 온도 색 표시</label></div>' +
     '<div class="row" id="shGapRow"><label><span>차양막 층 간격 (1 = 실제 비율에 가깝게)</span><span id="shGapV"></span></label><input type="range" id="shGap" min="0.3" max="4" step="0.1"></div>' +
     '<details class="more"><summary>차양막 실제 모습</summary><p class="note" id="shGapNote">제임스웹 차양막은 막 한 장이 0.025~0.05 mm로 아주 얇고, 층 사이는 가운데가 몇 cm, 가장자리로 갈수록 수십 cm까지 벌어집니다(벌어진 틈으로 열이 옆으로 빠져나감). 층을 잘 보려면 간격을 키워 보세요.</p></details>' +
+    '<div class="chk"><input type="checkbox" id="mReal" checked><label for="mReal">거울 반사 실감 (끄면 어느 각도에서나 금색)</label></div>' +
     '<div class="chk"><input type="checkbox" id="names" checked><label for="names">부품 이름</label></div>' +
     '<div class="chk"><input type="checkbox" id="phot" checked><label for="phot">광자 애니메이션</label></div>' +
     '<div class="chk"><input type="checkbox" id="auto"><label for="auto">자동 회전</label></div>' +
@@ -1254,6 +1260,7 @@ const CE = {};
   $('shGap').addEventListener('input', e => { S.shGap = +e.target.value; shGapShow(); scheduleBuild(); });
   $('nasa').addEventListener('change', e => { S.nasa = e.target.checked; build(false); });
   $('auto').addEventListener('change', e => { S.auto = e.target.checked; });
+  $('mReal').addEventListener('change', e => { S.mirrorReal = e.target.checked; setMirrorLook(S.mirrorReal); });
   // ③ 편대 간섭계 · 미래형
   const dShow = () => { $('dCollV').textContent = S.dColl.toFixed(1) + ' m'; $('dBaseV').textContent = S.dBase.toFixed(0) + ' m'; };
   $('dN').value = S.dN; $('dColl').value = S.dColl; $('dBase').value = S.dBase; $('fType').value = S.fType; dShow();
