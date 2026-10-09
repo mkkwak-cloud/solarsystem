@@ -1103,7 +1103,8 @@ const CE = {};
     '<div id="alnFoc" hidden><div class="row"><label><span>부경 앞뒤 위치 (초점)</span><span id="alnFV"></span></label><input type="range" id="alnF" min="-3" max="3" step="0.05"></div>' +
     '<div class="row2"><button type="button" class="btn" id="alnF0">초점 맞춤</button></div>' +
     '<p class="easy">작은 거울(부경)을 앞뒤로 아주 조금(실제로는 수~수십 µm) 움직이면 별이 흐려졌다 또렷해집니다. 3D에서는 크게 과장해 보여 줍니다. 값 = 거울 가장자리에서 빛이 늦게 도착하는 정도(파장 배수).</p></div>' +
-    '<div id="alnStat"></div></div>' +
+    '<div id="alnStat"></div>' +
+    '<p class="note">국내 근거: 한국천문연구원은 거울 조각을 지지대에 조립하고, 모터로 위치를 맞추고, 레이저 간섭계로 조각의 높이 차이를 재는 장치를 만들어 시험했습니다(<a href="https://arxiv.org/abs/2609.02571" target="_blank" rel="noopener">3.5m 분할거울 우주망원경 백서 3.2절, 2026</a>). 또 가벼운 우주용 거울(실리콘카바이드)을 매끈하게 깎고 닦는 기술을 2014년부터 미국 국립광학천문대와 함께 연구했고(<a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2018-16-kasi-application-of-extended-mari-concept-for-sic-mirrors-rev-a.pdf" target="_blank" rel="noopener">NASA 거울기술 워크숍 2018</a> · <a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2017-27-kasi-optical-characterization-of-300-mm-sic-mirrors.pdf" target="_blank" rel="noopener">2017</a>), 비대칭 오목 거울 조각의 모양을 정하는 방법도 발표했습니다(<a href="https://repository.arizona.edu/handle/10150/634628" target="_blank" rel="noopener">한정열 외, JATIS 2019</a>). 이 화면의 조각별 기울기·높이 맞추기가 바로 그 기술을 단순하게 보여 주는 것입니다.</p></div>' +
     '<h2>표시</h2><div class="chk"><input type="checkbox" id="rays" checked><label for="rays">광선 경로</label></div>' +
     '<div class="chk" id="nasaRow"><input type="checkbox" id="nasa" checked><label for="nasa">NASA 실제 3D 모델 사용 <span id="nasaSt" style="color:var(--mu)"></span></label></div>' +
     '<div class="row"><label><span>저궤도 고도 (🛰 LEO 뷰·한국형)</span><span id="leoHV"></span></label><input type="range" id="leoH" min="350" max="1200" step="10"></div>' +
