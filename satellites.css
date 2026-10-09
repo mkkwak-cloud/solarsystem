@@ -41,3 +41,25 @@ details.host > summary input { accent-color: var(--accent); }
 @media (max-width: 800px) {
   .infocard.popup { left: 8px; right: 8px; top: auto; bottom: 62px; width: auto; max-height: 52%; }
 }
+
+/* 지구 시점 (하늘 올려다보기) */
+#viewGround.on { border-color: var(--accent); color: var(--accent); }
+#groundPlace { background: #0f1a30; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px; font: inherit; font-size: 12.5px; }
+#groundSky { display: none; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(to bottom, #2a6fd6 0%, #6aa8ee 60%, #a9d1f7 100%); }
+.label.compass { font-size: 13px; color: #ffe8a3; text-shadow: 0 0 4px #000; }
+.label.compass.main { font-size: 17px; font-weight: 700; color: #ffd27a; }
+#skyList { position: absolute; left: 12px; top: 44px; width: 300px; max-height: calc(100% - 120px); overflow-y: auto; z-index: 3; background: rgba(11,17,32,.88);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
+#skyList[hidden] { display: none; }
+#skyList .hd { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; color: var(--text); }
+#skyList .hd span { color: var(--dim); }
+#skyList .row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; padding: 3px 0; border-top: 1px solid #1a2438; cursor: pointer; align-items: center; }
+#skyList .row.dim { display: block; color: var(--dim); cursor: default; font-size: 11px; }
+#skyList .row:hover .nm { color: var(--accent); }
+#skyList .tag { font-size: 10.5px; color: #aab; border: 1px solid #334; border-radius: 4px; padding: 0 4px; }
+#skyList .tag.eye { color: #6fe0a5; border-color: #2a6b4a; }
+@media (max-width: 800px) { #skyList { left: 8px; right: 8px; width: auto; top: 40px; max-height: 34%; } }
+#skyList .hd { cursor: pointer; }
+#skyList .fold { font-weight: 400; font-size: 11px; color: var(--dim); margin-left: 4px; }
+#skyList.folded .row { display: none; }
+@media (max-width: 800px) { #skyList { top: 52px; } }

@@ -1,6 +1,6 @@
 // ===== 심우주 망원경 3D 시뮬레이터 본체 (telescope.html) =====
 // 계산은 ./calc.js, three.js 는 페이지의 import map(vendor/three) 에서 읽는다. 태양계·위성 페이지와 같은 라이브러리를 쓴다.
-import { SQ3, PHYS, LAUNCHERS, EACS, PRESETS, GAP, hexLayout, hexVerts, apertureOf, ringsForAperture, sag, makeOptics, traceRay, secondaryRadius, buildStats, fitCheck, fft1, fft2, makePupil, psfFromPupil, radialMean, segsAcross, envelopeRadius, PHASING_REF, coronagraphFromPupil, annulusMean, toleranceFor, normCdf, normInv, planetFluxRatio, detectThreshold, requiredSNR, detectPower, starPhotonFlux, G_CORE, detectionBudget, limitingDistance, contrastStability, SIGMA, SHIELD_DEF, sunshieldTemps, MU_E, leoOrbit, TARGETS, targetStar, iwaHorizonPc, SHIELD_TYPES } from './calc.js';
+import { EACS, GAP, G_CORE, LAUNCHERS, MU_E, PHASING_REF, PHYS, PRESETS, R_E, SHIELD_DEF, SHIELD_TYPES, SIGMA, SQ3, TARGETS, annulusMean, apertureOf, buildStats, contrastStability, coronagraphFromPupil, detectPower, detectThreshold, detectionBudget, envelopeRadius, fft1, fft2, fitCheck, hexLayout, hexVerts, iwaHorizonPc, leoOrbit, limitingDistance, makeOptics, makePupil, normCdf, normInv, planetFluxRatio, psfFromPupil, radialMean, requiredSNR, ringsForAperture, sag, secondaryRadius, segsAcross, starPhotonFlux, sunshieldTemps, targetStar, toleranceFor, traceRay } from './calc.js';
 const $ = id => document.getElementById(id);
 let THREE;
 try {
@@ -1197,7 +1197,8 @@ function setView(v) {
     $('info').innerHTML = INFO_VIEW.earth; $('info').style.display = '';
   } else if (v === 'leo') {
     applyHolderLEO(); sun.position.set(-1, 0, 0); camera.near = 0.05;
-    camera.position.set(-9, 10, 32); controls.target.set(-3, -0.5, 0); camera.updateProjectionMatrix();
+    const k = camera.aspect < 1 ? Math.max(1, 0.85 / camera.aspect) : 1;   // 세로 화면(휴대폰)은 더 멀리
+    camera.position.set(-9 * k, 10 * k, 32 * k); controls.target.set(-3, -0.5, 0); camera.updateProjectionMatrix();
     $('info').innerHTML = INFO_VIEW.leo; $('info').style.display = '';
   } else { sun.position.set(0.4, 1, 0.7); fitCamera(); $('info').innerHTML = INFO[infoKey()]; }
 }

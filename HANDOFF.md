@@ -1,5 +1,9 @@
 # HANDOFF
 
+## 2026-10-09 추가: 국내 위성 페이지 "지구 시점" (plan/phase-2/04-지구시점.md)
+- 관측 지점(기본 서울)에서 하늘을 올려다보는 화면, 하늘의 국내 위성 목록(방위·고도·맨눈 가능), 관측 위치 선택(GPS 포함). src/sat/ground.js. 커밋 안 함("cmt" 대기).
+- 같이 대기 중: 우주망원경 저궤도(LEO) 버튼 오류 수정(plan/phase-3/02-구현.md 끝).
+
 ## 2026-10-09 추가: 우주망원경 시뮬레이터 통합 (phase-3)
 - telescope.html (세 번째 페이지) + src/telescope/ + models/jwst/. 태양계·위성 페이지와 상호 이동 버튼. 태양계 화면에 "제임스웹 (L2)" 표시와 카드 버튼(→ telescope.html?mode=J). 상세: plan/phase-3/02-구현.md
 - 시험: `node scripts/test-telescope-calc.mjs`, `node scripts/test-telescope-smoke.mjs` 통과, 헤드리스 크롬으로 세 페이지 확인. 커밋 안 함("cmt" 대기).

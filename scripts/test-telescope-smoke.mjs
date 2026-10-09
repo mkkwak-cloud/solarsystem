@@ -82,16 +82,16 @@ globalThis.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, a
 globalThis.performance = { now: () => 0 };
 let rafFn = null; globalThis.requestAnimationFrame = fn => { rafFn = fn; };
 
-// src/telescope/{calc,main}.js 를 import 없이 한 파일로 합쳐 임시 폴더에서 실행 (three.js 는 위 스텁)
+// src/telescope/{calc,main}.js 를 실제 import 구조 그대로 임시 폴더에 복사해 실행 (three.js 만 위 스텁으로 바꿈).
+// 파일을 합치지 않으므로, main.js 가 calc.js 에서 가져오기(import)를 빠뜨린 이름은 여기서 ReferenceError 로 잡힌다.
 const root = new URL('../src/telescope/', import.meta.url);
-const calc = fs.readFileSync(new URL('calc.js', root), 'utf8').replace(/^export /gm, '');
-let main = fs.readFileSync(new URL('main.js', root), 'utf8').replace(/^import \{[^}]*\} from '\.\/calc\.js';\n/m, '');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'telescope-smoke-'));
+fs.copyFileSync(new URL('calc.js', root), path.join(dir, 'calc.js'));
+let main = fs.readFileSync(new URL('main.js', root), 'utf8');
 if (!main.includes("THREE = await import('three');")) throw new Error('main.js 의 three 불러오기 줄을 찾지 못함');
 main = main.replace("THREE = await import('three');", 'THREE = globalThis.__THREE;');
-const runFile = path.join(os.tmpdir(), `telescope-smoke-${process.pid}.mjs`);
-fs.writeFileSync(runFile, calc + '\n' + main + '\nglobalThis.__T = { S, setMode, setView, getCtx: () => ctx, applyT, build, frame, PRESETS };\n');
-await import(pathToFileURL(runFile).href);
-fs.unlinkSync(runFile);
+fs.writeFileSync(path.join(dir, 'main.mjs'), main + '\nglobalThis.__T = { S, setMode, setView, getCtx: () => ctx, applyT, build, frame, PRESETS };\n');
+try { await import(pathToFileURL(path.join(dir, 'main.mjs')).href); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 const T = globalThis.__T;
 let fails = 0;
 const check = (c, m) => { if (!c) { fails++; console.log('FAIL', m); } };

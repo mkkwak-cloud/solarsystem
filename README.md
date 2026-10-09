@@ -32,7 +32,7 @@
 
 ```
 index.html, style.css      화면 (태양계)
-satellites.html/.css       국내 위성 추적 페이지
+satellites.html/.css       국내 위성 추적 페이지 (지구 시점: 서울 등 관측 지점에서 하늘 보기)
 telescope.html/.css        우주망원경 시뮬레이터 페이지 (코드: src/telescope/)
 src/data/                  표시 설정, 행성 값, 자전 요소
 src/sim/                   시계, 행성·위성·혜성·소행성·보이저 위치 계산, 케플러 풀이, 거리 스케일, 자전

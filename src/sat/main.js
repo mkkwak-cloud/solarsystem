@@ -8,6 +8,7 @@ import { loadPlainTexture } from '../scene/textures.js';
 import { Clock } from '../sim/clock.js';
 import { INFO, GROUPS, SITES, DANURI, PENDING } from './info.js';
 import { loadDanuri, jdOfMs } from './danuri.js';
+import { createGroundView, PLACES } from './ground.js';
 
 const $ = (id) => document.getElementById(id);
 const R_EQ = 6378.137;            // 지구 적도 반지름 km (= 화면 1 단위)
@@ -162,6 +163,7 @@ $('nowBtn').addEventListener('click', () => { clock.date = new Date(); invalidat
 
 // ---------- 계산: 지구 자전·태양·달·위성·다누리 ----------
 let rotEQD = null, curTime = null, gmst = 0;
+const sunDirScene = new THREE.Vector3(1, 0, 0);   // 지구 → 태양 방향 (화면 좌표, 단위벡터)
 const moonPos = new THREE.Vector3();
 function eqjToSceneKm(xKm, yKm, zKm) {          // J2000 적도좌표(km) -> 날짜 적도좌표(관성) -> 화면
   const v = Astronomy.RotateVector(rotEQD, new Astronomy.Vector(xKm, yKm, zKm, curTime));
@@ -176,6 +178,7 @@ function updateEnvironment(date) {
   const sun = Astronomy.RotateVector(rotEQD, Astronomy.GeoVector('Sun', curTime, true));
   const sd = sceneOf(sun.x, sun.y, sun.z, 1).normalize();
   sunLight.position.copy(sd).multiplyScalar(400);
+  sunDirScene.copy(sd);
   sunDirView.value.copy(sd).transformDirection(camera.matrixWorldInverse);
   const m = Astronomy.RotateVector(rotEQD, Astronomy.GeoMoon(curTime));
   moonPos.copy(sceneOf(m.x, m.y, m.z, AU_KM / R_EQ));
@@ -296,6 +299,7 @@ function flyTo(obj, dist, dir) {
   updateFollowButton();
 }
 function stepCamera() {
+  if (ground.on) return;   // 지구 시점에서는 카메라를 관측 지점에 고정
   const t = followTarget();
   if (!t) return;
   const goal = t, next = approach ? controls.target.clone().lerp(goal, 0.12) : goal.clone();
@@ -310,8 +314,8 @@ function stepCamera() {
   }
 }
 controls.addEventListener('start', () => { if (approach) approach = null; });
-function viewEarth() { selectNone(true); flyTo('origin', 4.2, new THREE.Vector3(0, 0.2, 1)); }
-function viewMoon() { flyTo('moon', 1.1, moonPos.clone().negate().normalize().multiplyScalar(-1)); selectItem(danuri, { fly: false }); lastTrailMs = -1e18; }
+function viewEarth() { exitGround(); selectNone(true); flyTo('origin', 4.2, new THREE.Vector3(0, 0.2, 1)); }
+function viewMoon() { exitGround(); flyTo('moon', 1.1, moonPos.clone().negate().normalize().multiplyScalar(-1)); selectItem(danuri, { fly: false }); lastTrailMs = -1e18; }
 $('viewEarth').addEventListener('click', () => { viewEarth(); closePanelOnMobile(); });
 $('viewMoon').addEventListener('click', () => { viewMoon(); closePanelOnMobile(); });
 function closePanelOnMobile() { if (isMobile()) setPanelCollapsed(true); }
@@ -390,6 +394,10 @@ function selectNone(keepCamera) {
   if (!keepCamera) { followObj = null; approach = null; }
 }
 function flyToItem(s) {
+  if (ground.on) {   // 지구 시점: 그 위성 쪽 하늘을 바라본다
+    if (s.isDanuri || !ground.aimAt(s)) statusEl.textContent = `${s.shortKo ?? s.ko}은(는) 지금 ${ground.st.place.name} 지평선 아래에 있습니다.`;
+    return;
+  }
   if (s.isDanuri) { flyTo('moon', 0.9, moonPos.clone().normalize()); lastTrailMs = -1e18; return; }
   flyTo(s, s.isGeo ? 1.2 : 0.5, s.pos.clone());
 }
@@ -595,6 +603,7 @@ function showModel(s, dist, factor) {
 }
 function updateModels() {
   for (const e of models.values()) e.group.visible = false;
+  if (ground.on) return;   // 지구 시점에서는 확대 모형을 그리지 않음(하늘의 점으로만)
   const cand = [];
   for (const s of sats) {
     if (!s.visible) continue;
@@ -651,6 +660,7 @@ function frame(now) {
   selRing.visible = !!sp;
   if (sp) selRing.position.copy(sp);
 
+  ground.frame(now);
   updateModels();
   updateLive(false);
   const d = date, t = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -659,7 +669,41 @@ function frame(now) {
   world.render();
   requestAnimationFrame(frame);
 }
+// ---------- 지구 시점 (관측 지점에서 하늘 보기, 기본 서울) ----------
+const ground = createGroundView({
+  scene, camera, controls, renderer, earth, stageEl, sats,
+  hide: [clouds, atmo, siteGroup],
+  getGmst: () => gmst, getSunDir: () => sunDirScene,
+  onPick: (s) => selectItem(s),
+});
+function exitGround() {
+  if (!ground.on) return;
+  ground.exit(); clouds.visible = opts.clouds; atmo.visible = true; siteGroup.visible = opts.sites;
+  for (const c of siteGroup.children) c.visible = opts.sites;
+  $('viewGround').classList.remove('on'); $('viewGround').textContent = '지구 시점 (하늘 올려다보기)';
+}
+function enterGround(place) {
+  followObj = null; approach = null;
+  ground.enter(place);
+  $('viewGround').classList.add('on'); $('viewGround').textContent = '지구 시점 끄기';
+}
+{
+  const sel = $('groundPlace');
+  for (const p of PLACES) sel.add(new Option(p.name, p.id));
+  sel.add(new Option('내 위치 (GPS)', 'gps'));
+  const pick = () => {
+    if (sel.value !== 'gps') { const p = PLACES.find((x) => x.id === sel.value); if (ground.on) enterGround(p); else ground.st.place = p; return; }
+    if (!navigator.geolocation) { statusEl.textContent = '이 브라우저는 위치 정보를 지원하지 않습니다.'; sel.value = ground.st.place.id ?? 'seoul'; return; }
+    navigator.geolocation.getCurrentPosition(
+      (g) => { const p = { id: 'gps', name: '내 위치', lat: g.coords.latitude, lon: g.coords.longitude }; enterGround(p); closePanelOnMobile(); },
+      () => { statusEl.textContent = '위치 정보를 받지 못했습니다(권한 거부 등). 서울로 둡니다.'; sel.value = 'seoul'; ground.st.place = PLACES[0]; });
+  };
+  sel.addEventListener('change', pick);
+  $('viewGround').addEventListener('click', () => { if (ground.on) { exitGround(); viewEarth(); } else { enterGround(); closePanelOnMobile(); } });
+}
+
 updateEnvironment(clock.date);
 invalidateOrbits();   // 첫 프레임에서 위성 위치가 계산된 뒤 궤도선을 새로 그리게 함
 requestAnimationFrame(frame);
-window.__sat = { sats, danuri, clock, camera, controls, selectItem, flyToItem, viewMoon, viewEarth };   // 시험용
+window.__sat = { sats, danuri, clock, camera, controls, selectItem, flyToItem, viewMoon, viewEarth, ground, enterGround, exitGround };
+if (new URLSearchParams(location.search).get('view') === 'ground') enterGround();   // satellites.html?view=ground   // 시험용
