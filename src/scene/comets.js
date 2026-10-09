@@ -69,9 +69,14 @@ export function createComets(scene, cometData) {
     orbit.frustumCulled = false;
     scene.add(orbit);
     const orbitAU = cometOrbitAU(c, c.kind === 'interstellar' ? ORBIT_RMAX_INTERSTELLAR : ORBIT_RMAX);
+    // 성간천체: 궤도선 양 끝에 "들어온 길 / 나가는 길" 이름표 (궤도점은 시간 순서 = 들어옴 → 나감)
+    const pathLabels = c.kind === 'interstellar' ? [[0.04, `${c.name_ko} 들어온 길`], [0.96, `${c.name_ko} 나가는 길`]].map(([f, txt]) => {
+      const o = new CSS2DObject(Object.assign(document.createElement('div'), { className: 'label comet path', textContent: txt }));
+      o.userData.idx = Math.round(f * (orbitAU.length - 1)); scene.add(o); return o;
+    }) : [];
 
     items.set(c.id, {
-      def: { id: c.id, name: c.kind === 'interstellar' ? c.name_ko : c.name_ko }, data: c, group, head, glow, tail, label, orbit, orbitAU,
+      def: { id: c.id, name: c.kind === 'interstellar' ? c.name_ko : c.name_ko }, data: c, group, head, glow, tail, label, orbit, orbitAU, pathLabels,
       color, spread, enabled: true, rAU: 0, activity: 0, au: new THREE.Vector3(), isComet: true, radius: 0.04, radiusNow: 0.04, kind: 'solid',
     });
   }
@@ -82,6 +87,7 @@ export function createComets(scene, cometData) {
       it.orbitAU.forEach((p, i) => { applyScale(p, tmp); arr[i * 3] = tmp.x; arr[i * 3 + 1] = tmp.y; arr[i * 3 + 2] = tmp.z; });
       it.orbit.geometry.setAttribute('position', new THREE.BufferAttribute(arr, 3));
       it.orbit.geometry.computeBoundingSphere();
+      for (const pl of it.pathLabels) pl.position.set(arr[pl.userData.idx * 3], arr[pl.userData.idx * 3 + 1], arr[pl.userData.idx * 3 + 2]);
     }
   }
   rebuildOrbits();
@@ -93,6 +99,7 @@ export function createComets(scene, cometData) {
       it.group.visible = on;
       it.orbit.visible = on && flags.orbit;
       it.label.visible = on && flags.label;
+      for (const pl of it.pathLabels) pl.visible = on && flags.orbit && flags.label;
 
       // 숨겨져도 위치는 갱신 (카드·포커스용). 21개라 가볍다.
       const p = cometPositionAU(it.data, date);

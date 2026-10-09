@@ -84,6 +84,7 @@ details.host .cards-in { display: flex; flex-direction: column; gap: 6px; paddin
 
 .label.comet { font-size: 11px; color: #bfe3ff; }
 .label.comet.sel { color: var(--accent); }
+.label.comet.path { color: #ffb36b; font-size: 10.5px; opacity: .85; }   /* 성간천체 궤도선 이름표 */
 .card .name input { accent-color: var(--accent); margin-right: 4px; }
 .badge.comet { color: #8fd3ff; border-color: #2a5a7a; }
 .badge.inter { color: #ffb86b; border-color: #8a5a22; }
