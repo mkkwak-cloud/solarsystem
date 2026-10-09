@@ -1,6 +1,6 @@
 // ===== 심우주 망원경 3D 시뮬레이터 본체 (telescope.html) =====
 // 계산은 ./calc.js, three.js 는 페이지의 import map(vendor/three) 에서 읽는다. 태양계·위성 페이지와 같은 라이브러리를 쓴다.
-import { EACS, GAP, G_CORE, LAUNCHERS, MU_E, PHASING_REF, PHYS, PRESETS, R_E, SHIELD_DEF, SHIELD_TYPES, SIGMA, SQ3, TARGETS, annulusMean, apertureOf, buildStats, contrastStability, coronagraphFromPupil, detectPower, detectThreshold, detectionBudget, envelopeRadius, fft1, fft2, fitCheck, hexLayout, hexVerts, iwaHorizonPc, leoOrbit, limitingDistance, makeOptics, makePupil, normCdf, normInv, planetFluxRatio, psfFromPupil, radialMean, requiredSNR, ringsForAperture, sag, secondaryRadius, segsAcross, starPhotonFlux, sunshieldTemps, targetStar, toleranceFor, traceRay } from './calc.js';
+import { EACS, GAP, G_CORE, LAUNCHERS, MU_E, PHASING_REF, PHYS, PRESETS, R_E, SHIELD_DEF, SHIELD_TYPES, SIGMA, SQ3, TARGETS, annulusMean, apertureOf, buildStats, contrastStability, coronagraphFromPupil, detectPower, detectThreshold, detectionBudget, envelopeRadius, fft1, fft2, fitCheck, hexLayout, hexVerts, iwaHorizonPc, leoOrbit, limitingDistance, makeOptics, makePupil, normCdf, normInv, planetFluxRatio, psfFromPupil, radialMean, requiredSNR, ringsForAperture, sag, secondaryRadius, segsAcross, starPhotonFlux, sunshieldTemps, targetStar, toleranceFor, traceRay, makeAlignPupil, ALIGN_STEPS, alignTarget, alignBase } from './calc.js';
 const $ = id => document.getElementById(id);
 let THREE;
 try {
@@ -72,19 +72,25 @@ function makeEnv(pm) {
   return pm.fromScene(room, 0.04).texture;
 }
 
-const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst' };
-const DUR = { A: 16, B: 24, C: 14 };
-const MODE_NAME = { A: '접이식 전개형', B: '우주 조립형', C: 'HWO형', J: '제임스웹 실사', K: '한국형 우주망원경' };
-const MODE_SUB = { A: 'JWST·Roman', B: 'iSAT류', C: '오프액시스', J: 'JWST 재현', K: '3.5mST·KASI' };
+const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst', dN: 4, dColl: 2, dBase: 40, fType: 'mem' };
+// 거울 맞추기 상태: err[조각 번호] = { dx, dy (별 상 위치 어긋남, λ/D), p (높이 어긋남, 파장 배수) }, defocus = 초점 어긋남(파장 배수)
+const AL = { tab: 'jw', base: [], err: [], step: 4, sel: 0, defocus: 0, anim: null, nSeg: -1, last: 0, dirty: true, view: null, touched: false };
+const DUR = { A: 16, B: 24, C: 14, D: 12, F: 12 };
+const MODE_NAME = { A: '접이식 전개형', B: '우주 조립형', C: 'HWO형', J: '제임스웹 실사', K: '한국형 우주망원경', D: '편대 간섭계', F: '미래형' };
+const MODE_SUB = { A: 'JWST·Roman', B: 'iSAT류', C: '오프액시스', J: '①형 실제 예', K: '3.5mST·KASI', D: 'LIFE류', F: '아이디어 단계' };
+// 형태 분류(최근 논문 기준, 주경을 어떻게 만드나): ① 접어서 한 번에 쏘기 ② 우주에서 조립·제작 ③ 여러 대 나눠 띄우기 + 기타 미래형(아이디어 단계)
+const GROUPS = [['① 접어서 한 번에', ['A', 'C', 'K']], ['② 우주에서 조립', ['B']], ['③ 여러 대 나눠 띄우기', ['D']], ['기타', ['F']]];
 // 3.5mST 백서(KASI 2026, arXiv:2609.02571): 3.5 m·육각 18장·on-axis·시스템 f/4.5(부경 위치 25 %로 맞춤)·0.2–1.5 µm·3 m급 페어링
 const KOREA = { D: 3.5, seg: 0.68, fn: 1.3, delta: 25, bfrac: 0.15, lambda: 0.55, dens: 25, hole: true, launcher: 'f3' };
 const infoKey = () => S.jwst ? 'J' : S.korea ? 'K' : S.mode;
 const INFO = {
-  K: '<b>한국형 3.5 m 분할경 로봇 우주망원경(3.5mST)</b> — 한국천문연구원 등 백서(2026, arXiv 2609.02571·2609.02577, 개념 연구 단계·예산 미확보): 주경 3.5 m(육각 18장, on-axis, f/4.5), 0.2~1.5 µm, 광시야 10′~30′, 분광 R~1000(옵션 R~5000), 전용 코로나그래프(원시 대비 10⁻⁸ 목표, 후처리 10⁻⁹, IWA 3λ/D = 97 mas@550 nm, OWA 20λ/D), 수명 10년, 약 3 m 페어링. 궤도는 L2 또는 지구궤도 검토 중(🛰 LEO 뷰로 지구궤도안 확인). 지구형 행성은 태양형 별 주위(10⁻¹⁰)보다 늦은 K형 별 61 Cyg A·ε Ind A가 유력 대상입니다. 이전 제안(한정열 외 2021: 0.3~1.0 µm·LEO)도 참고.',
-  J: '<b>제임스웹(JWST) 실물 재현</b> — NASA 3D Resources의 실제 3D 모델(약 10만 폴리곤, 실제 m 단위)을 표시합니다. 2021.12.25 발사(Ariane 5), 태양–지구 L2 헤일로 궤도. 금도금 베릴륨 육각 거울 18장(대변 1.32 m, 구경 6.5 m, 집광 25.4 m²) · 3개 지지대(삼각) 부경 · 5겹 칼톤 차양막(약 21.2×14.2 m) · 5장 단일 전지판(20° 기울임). ▶ 재생: 전지판 → 부경 지지대 → 차양막 → 날개 거울. 광학은 단순 카세그레인 근사(실제는 3반사경).',
-  A: '<b>접이식 전개형</b> — 날개 거울·부경 붐·차광막을 접어 로켓 한 대에 싣고, 우주에서 펼칩니다(JWST·Roman 방식). ▶ 재생: 태양전지판 → 부경 붐 → 차광막 → 날개 거울 → 거울 정렬 순서.',
-  B: '<b>우주 조립형</b> — 분할거울을 여러 번에 나눠 발사하고 궤도에서 로봇팔이 하나씩 조립합니다(NASA iSAT류 개념). 회색 윤곽은 아직 조립되지 않은 자리입니다.',
-  C: '<b>HWO형(NASA 개념)</b> — 부경 가림이 없는 오프액시스 주경 + 코로나그래프(대비 ≤10⁻¹⁰, 96×96 변형거울)로 지구형 행성을 직접 촬영. ⚙에서 EAC1/4/5 구성을 고르고 스타셰이드(별도 우주선)도 켤 수 있습니다. 형상은 개념도 수준입니다.',
+  K: '<b>① 한국형 3.5 m 분할경 로봇 우주망원경(3.5mST)</b> — 한국천문연구원 등 백서(2026, arXiv 2609.02571·2609.02577, 개념 연구 단계·예산 미확보): 주경 3.5 m(육각 18장, on-axis, f/4.5), 0.2~1.5 µm, 광시야 10′~30′, 분광 R~1000(옵션 R~5000), 전용 코로나그래프(원시 대비 10⁻⁸ 목표, 후처리 10⁻⁹, IWA 3λ/D = 97 mas@550 nm, OWA 20λ/D), 수명 10년, 약 3 m 페어링. 궤도는 L2 또는 지구궤도 검토 중(🛰 LEO 뷰로 지구궤도안 확인). 지구형 행성은 태양형 별 주위(10⁻¹⁰)보다 늦은 K형 별 61 Cyg A·ε Ind A가 유력 대상입니다. 이전 제안(한정열 외 2021: 0.3~1.0 µm·LEO)도 참고.',
+  D: '<b>③ 여러 대 나눠 띄우기 — 편대 간섭계(LIFE류)</b> — 작은 망원경 4~5대가 수십 m 간격으로 줄지어 날고, 모은 빛을 가운데 우주선에서 합칩니다. 별빛끼리 서로 지워지게 맞춰(널링) 바로 옆 행성이 내는 열(중적외선)을 봅니다. 거울 하나로는 만들 수 없는 큰 "가상 거울" 효과. 연구 단계(유럽 LIFE 구상, 리뷰 arXiv 2607.07746). ⚙에서 대수·거울 지름·간격을 바꿔 보세요. 크기·거리는 축척이 아닙니다.',
+  F: '<b>기타 · 미래형 (아이디어 단계)</b> — 아직 논문 속 개념 연구 수준이라 실제 발사 계획은 없습니다. ⚙에서 종류를 고르세요: 부풀린 막 거울(OASIS) · 우주에서 만드는 액체 거울(FLUTE) · 얇은 회절 렌즈판. 크기·거리는 축척이 아닙니다.',
+  J: '<b>제임스웹(JWST) 실물 재현</b> — ① 접어서 한 번에 쏘기형의 실제 예. NASA 3D Resources의 실제 3D 모델(약 10만 폴리곤, 실제 m 단위)을 표시합니다. 2021.12.25 발사(Ariane 5), 태양–지구 L2 헤일로 궤도. 금도금 베릴륨 육각 거울 18장(대변 1.32 m, 구경 6.5 m, 집광 25.4 m²) · 3개 지지대(삼각) 부경 · 5겹 칼톤 차양막(약 21.2×14.2 m) · 5장 단일 전지판(20° 기울임). ▶ 재생: 전지판 → 부경 지지대 → 차양막 → 날개 거울. 광학은 단순 카세그레인 근사(실제는 3반사경).',
+  A: '<b>① 접이식 전개형</b> — 날개 거울·부경 붐·차광막을 접어 로켓 한 대에 싣고, 우주에서 펼칩니다(JWST·Roman 방식). ▶ 재생: 태양전지판 → 부경 붐 → 차광막 → 날개 거울 → 거울 정렬 순서.',
+  B: '<b>② 우주 조립형</b> — 분할거울을 여러 번에 나눠 발사하고 궤도에서 로봇팔이 하나씩 조립합니다(NASA iSAT류 개념). 회색 윤곽은 아직 조립되지 않은 자리입니다.',
+  C: '<b>① HWO형(NASA 개념)</b> — 부경 가림이 없는 오프액시스 주경 + 코로나그래프(대비 ≤10⁻¹⁰, 96×96 변형거울)로 지구형 행성을 직접 촬영. ⚙에서 EAC1/4/5 구성을 고르고 스타셰이드(별도 우주선)도 켤 수 있습니다. 형상은 개념도 수준입니다.',
 };
 
 // ---------- 렌더러/씬 ----------
@@ -180,6 +186,7 @@ const M = {
   ghost: new THREE.MeshBasicMaterial({ color: 0x4de3ff, wireframe: true, transparent: true, opacity: 0.22 }),
   line: new THREE.LineBasicMaterial({ color: 0x6b7388 }),
 };
+M.mirrorSel = new THREE.MeshStandardMaterial({ color: 0xff8a3d, metalness: 0.6, roughness: 0.3, emissive: 0x662200, side: THREE.DoubleSide });   // 거울 맞추기에서 고른 조각
 const rnd = (() => { let a = 12345; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
 
 // ---------- 기하 도우미 ----------
@@ -279,6 +286,7 @@ function build(fit = true) {
   if (NASA.root && NASA.root.parent) NASA.root.parent.remove(NASA.root);
   if (tel) { holder.remove(tel); tel.traverse(o => { if (o.geometry && !o.userData.keep) o.geometry.dispose(); }); }
   tel = new THREE.Group(); holder.add(tel);
+  if (S.mode === 'D' || S.mode === 'F') { buildConcept(fit); return; }
   const mode = S.mode, hole = mode === 'C' ? false : S.hole;
   const n = ringsForAperture(S.D, S.seg, S.gap, hole);
   const segs = hexLayout(n, S.seg, S.gap, hole);
@@ -291,6 +299,7 @@ function build(fit = true) {
   const p = S.seg + S.gap, qFold = Math.max(1, Math.floor(n / 2));
   const xh = (qFold + 0.5) * SQ3 / 2 * p;
   ctx = { mode, segs, Deff, R, f, opt, rs, n, xh, yBP, count: 0, lastCount: -1 };
+  if (AL.nSeg !== segs.length) alResetFor(segs.length); AL.dirty = true;
   const wingOf = g => (mode === 'A' && Math.abs(g.q) > qFold) ? (g.q > 0 ? 1 : -1) : 0;
 
   let wingR = null, wingL = null;
@@ -322,7 +331,7 @@ function build(fit = true) {
     gm.add(new THREE.LineSegments(lg, M.line));
     const px = w === 1 ? xh : w === -1 ? -xh : 0, py = w ? yBP : 0;
     gm.position.set(g.x - px, y0 - py, g.z);
-    gm.userData = { seg: g, base: gm.position.clone(), jit: [(rnd() - 0.5) * 0.09, (rnd() - 0.5) * 0.09, (rnd() - 0.5) * 0.06 * Deff * 0.1] };
+    gm.userData = { seg: g, si: segs.indexOf(g), base: gm.position.clone(), jit: [(rnd() - 0.5) * 0.09, (rnd() - 0.5) * 0.09, (rnd() - 0.5) * 0.06 * Deff * 0.1] };
     grp.add(gm); ctx.order.push(gm);
     if (mode === 'B') {
       const gh = new THREE.Mesh(geo, M.ghost); gh.position.set(g.x, y0, g.z); tel.add(gh); ctx.ghosts.push(gh);
@@ -626,6 +635,7 @@ function updateArm(T) {
 }
 function applyT(t) {
   if (!tel) return;
+  if (ctx.concept) { ctx.concept.anim(t); if (ctx.names) ctx.names.visible = S.names; return; }
   const mode = ctx.mode, Deff = ctx.Deff;
   // 태양전지판
   const pw = mode === 'B' ? 1 : ph(t, 0, 0.25);
@@ -640,7 +650,7 @@ function applyT(t) {
   if (ctx.names) ctx.names.visible = S.names;
   if (ctx.ssh) ctx.ssh.visible = !!S.starshade;
   if (ctx.sec) {
-    const bm = mode === 'B' ? 1 : ph(t, 0.15, 0.55), yS = lerp(ctx.yStow, ctx.opt.d, bm);
+    const bm = mode === 'B' ? 1 : ph(t, 0.15, 0.55), yS = lerp(ctx.yStow, ctx.opt.d, bm) + AL.defocus * 0.012 * Deff;   // 초점 조절: 부경 앞뒤(과장)
     ctx.sec.position.y = yS; updateStruts(yS); if (ctx.secName) ctx.secName.position.y = yS + 0.14 * Deff;
   }
   if (mode === 'B') { updateAssembly(t); }
@@ -654,6 +664,7 @@ function applyT(t) {
     }
     if (!ctx.rayGroup) buildRays();
   }
+  alApply3D();
   if (ctx.rayGroup) ctx.rayGroup.visible = S.rays && (mode === 'B' ? true : t > 0.985);
   if (ctx.nasa) {
     if (ctx.rayGroup) ctx.rayGroup.visible = false;               // 실제 모델 형상과 단순 광선 모델이 맞지 않아 숨김
@@ -683,9 +694,195 @@ function updateAssembly(t) {
   if (k !== ctx.lastCount) { ctx.lastCount = k; buildRays(); }
 }
 
+// ---------- ③ 여러 대 나눠 띄우기 · 기타 미래형 (개념 장면 — 크기·거리 축척 아님) ----------
+// ③ 근거: Rau 2026 우주·달 간섭계 리뷰(arXiv 2607.07746) — LIFE: 2 m급 4대, 4~18.5 µm, 기선 약 10~600 m(25~80 m로 줄여도 성능 손실 <10 %),
+//   2.5년 탐색에 행성 ~550개(암석형 생명가능지대 25~45개), 3.5 m면 ~770개(60~80개). 5대 오각형 배치가 같은 집광면적에서 약 23 % 유리.
+// 미래형 근거: OASIS 14 m 부풀린 주경(arXiv 2203.05633), 액체 거울 FLUTE(arXiv 2507.02812·2510.02479), 회절 렌즈판(arXiv 2609.01978).
+const MC = {
+  beam: new THREE.LineBasicMaterial({ color: 0x4de3ff, transparent: true, opacity: 0.85 }),
+  star: new THREE.LineBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.4 }),
+  film: new THREE.MeshStandardMaterial({ color: 0xdfe8ff, metalness: 0.9, roughness: 0.15, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
+  liquid: new THREE.MeshStandardMaterial({ color: 0xd9e2f0, metalness: 1, roughness: 0.04, side: THREE.DoubleSide }),
+  torus: new THREE.MeshStandardMaterial({ color: 0xf1f3f7, metalness: 0.2, roughness: 0.6 }),
+};
+function lineObj(mat, n) {
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 6), 3));
+  const l = new THREE.LineSegments(g, mat); l.frustumCulled = false; return l;
+}
+function setLine(l, i, a, b) { const p = l.geometry.attributes.position.array; p[i * 6] = a.x; p[i * 6 + 1] = a.y; p[i * 6 + 2] = a.z; p[i * 6 + 3] = b.x; p[i * 6 + 4] = b.y; p[i * 6 + 5] = b.z; l.geometry.attributes.position.needsUpdate = true; }
+let zoneTexC = null;
+const zoneTex = () => zoneTexC ||= mkTex(512, 512, (x, w, h) => {   // 회절 렌즈판의 동심원 무늬(프레넬 띠)
+  x.clearRect(0, 0, w, h);
+  for (let k = 60; k >= 1; k--) { x.beginPath(); x.arc(w / 2, h / 2, (w / 2) * Math.sqrt(k / 60), 0, 2 * Math.PI); x.fillStyle = k % 2 ? 'rgba(255,214,150,.85)' : 'rgba(120,150,220,.35)'; x.fill(); }
+});
+function mkSat(sc, mat) {   // 작은 우주선 몸체(상자 + 금박)
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.BoxGeometry(1, 0.6, 1), mat || M.mli); b.scale.setScalar(sc); g.add(b); return g;
+}
+function buildConcept(fit) {
+  const mode = S.mode, nm = new THREE.Group(); tel.add(nm);
+  const cc = { anim: () => { }, stats: () => '' };
+  ctx = { mode, concept: cc, names: nm, layers: [], order: [], segs: null, Deff: 1, extent: 14, center: new V3(0, 0, 0) };
+  const addName = (txt, x, y, z, sc = 0.32) => { const l = label(txt, sc); l.position.set(x, y, z); nm.add(l); return l; };
+  if (mode === 'D') {
+    const n = S.dN, W = 2.2 + 3.8 * (S.dBase - 10) / 90, dv = 0.5 + 0.32 * S.dColl;   // 짧은 쪽 간격(보기용), 거울 지름(과장)
+    const fin = n === 4 ? [[-1.25, -0.5], [1.25, -0.5], [1.25, 0.5], [-1.25, 0.5]].map(([a, b]) => new V3(a * 2 * W, 0, b * W))
+      : [...Array(5)].map((_, i) => { const a = Math.PI / 2 + i * 2 * Math.PI / 5; return new V3(Math.cos(a) * 1.3 * W, 0, Math.sin(a) * 1.3 * W); });
+    const comb = mkSat(0.9, M.bus); comb.position.set(0, -0.6, 0); tel.add(comb);
+    const cols = fin.map((p, i) => {
+      const g = mkSat(0.55);
+      const mir = new THREE.Mesh(new THREE.CircleGeometry(dv / 2, 40).rotateX(-Math.PI / 2), M.mirror); mir.position.y = 0.35; g.add(mir);
+      const sh = new THREE.Mesh(new THREE.CircleGeometry(dv * 0.75, 6).rotateX(-Math.PI / 2), M.shield); sh.position.y = -0.4; g.add(sh);
+      tel.add(g); return { g, fin: p, start: new V3(0, 1.2 + i * 0.75, 0) };
+    });
+    const beams = lineObj(MC.beam, n), star = lineObj(MC.star, n); tel.add(beams, star);
+    addName(`빛 모으는 망원경 ${n}대 (거울 지름 ${S.dColl.toFixed(1)} m)`, fin[0].x, 1.6, fin[0].z, 0.3);
+    addName('가운데: 빛 합치는 우주선', 0, -1.7, 0, 0.3);
+    addName(`망원경 사이 ${S.dBase.toFixed(0)} m (크기·거리 축척 아님)`, 0, -2.5, 0, 0.26);
+    ctx.extent = 6.5 * W + 6;
+    cc.anim = t => {
+      const k = ph(t, 0.05, 0.75), on = t > 0.78;
+      cols.forEach((c, i) => {
+        const x = lerp(c.start.x, c.fin.x, k), y = lerp(c.start.y, c.fin.y, k), z = lerp(c.start.z, c.fin.z, k), top = new V3(x, y + 0.36, z);
+        c.g.position.set(x, y, z);
+        setLine(star, i, new V3(x, y + 6, z), top); setLine(beams, i, top, comb.position);
+      });
+      beams.visible = on; star.visible = on; MC.beam.opacity = 0.5 + 0.35 * Math.sin(performance.now() / 300) ** 2;
+    };
+    cc.stats = () => {
+      const area = n * Math.PI * (S.dColl / 2) ** 2, lam = 10e-6, res = lam / (2 * S.dBase) * 206264806, jw = 1.22 * lam / 6.5 * 206264806;
+      const big = S.dColl >= 3, rows = [
+        ['배치', n === 4 ? '4대 · X자(직사각형) — LIFE 기본안' : '5대 · 오각형 — 같은 면적에서 지구 쌍둥이 검출 약 23 % 유리(제안)'],
+        ['전체 집광면적', `${area.toFixed(1)} m² (제임스웹 25.4 m²의 ${(area / 25.4 * 100).toFixed(0)} %)`],
+        ['보는 빛', '중적외선 4~18.5 µm (행성이 내는 열)'],
+        ['구분 능력 (10 µm)', `약 ${res.toFixed(0)} 밀리초각 — 제임스웹 한 대(${jw.toFixed(0)})보다 ${(jw / res).toFixed(0)}배 세밀`],
+        ['같은 일을 거울 하나로', `지름 약 ${(2 * S.dBase).toFixed(0)} m 거울이 필요`],
+        ['예상 성과(논문, 2.5년)', big ? '행성 ~770개 · 암석형 생명가능지대 60~80개 (3.5 m급)' : '행성 ~550개 · 암석형 생명가능지대 25~45개 (2 m급)'],
+        ['가장 어려운 점', '우주선끼리 거리·빛 경로를 아주 정밀하게 유지 (PROBA-3가 2025년 150 m 간격을 약 1 mm로 유지 시연)'],
+        ['단계', '연구 단계 (유럽 LIFE 구상, 발사 계획 미정)'],
+      ];
+      return rows;
+    };
+  } else {
+    const ft = S.fType;
+    if (ft === 'mem') {
+      const g = new THREE.Group(); tel.add(g);
+      const tor = new THREE.Mesh(new THREE.TorusGeometry(4, 0.35, 16, 72).rotateX(Math.PI / 2), MC.torus); g.add(tor);
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(9, 64, 16, 0, Math.PI * 2, 0, 0.47), MC.film); dish.rotation.x = Math.PI; dish.position.y = 8.6; g.add(dish);
+      const bus = mkSat(1.1); bus.position.set(0, -1.2, 0); tel.add(bus);
+      addName('부풀린 막 거울 (공기를 넣어 펼침)', 0, 1.6, 0, 0.34); addName('아이디어 단계 · 축척 아님', 0, -2.6, 0, 0.26);
+      ctx.extent = 17;
+      cc.anim = t => { const k = 0.08 + 0.92 * ph(t, 0.1, 0.85); g.scale.set(k, Math.max(0.15, k), k); };
+      cc.stats = () => [['크기 예', '14 m 주경 (OASIS 구상, 제임스웹의 2배 이상)'], ['방법', '얇은 막을 공기(기체)로 부풀려 오목 거울 모양을 만듦'], ['장점', '접어 실으면 아주 작고 가벼움'], ['어려운 점', '막 모양을 정확히 유지하기, 작은 구멍·온도 변화'], ['단계', '아이디어 단계 (논문 개념 연구, 실제 계획 없음)']];
+    } else if (ft === 'fluid') {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(4.5, 0.12, 10, 96).rotateX(Math.PI / 2), M.strut); tel.add(ring);
+      const spokes = new THREE.Group(); tel.add(spokes);
+      for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3, s = makeCyl(0.05, M.strut); setCyl(s, new V3(0, 0, 0), new V3(4.5 * Math.cos(a), 0, 4.5 * Math.sin(a))); spokes.add(s); }
+      const liq = new THREE.Mesh(new THREE.CircleGeometry(4.45, 96).rotateX(-Math.PI / 2), MC.liquid); liq.position.y = 0.02; tel.add(liq);
+      const bus = mkSat(0.9); bus.position.set(0, -1, 0); tel.add(bus);
+      addName('우주에서 액체로 만드는 거울', 0, 1.5, 0, 0.34); addName('아이디어 단계 · 축척 아님', 0, -2.4, 0, 0.26);
+      ctx.extent = 15;
+      cc.anim = t => { const k = Math.max(0.02, ph(t, 0.2, 0.95)); liq.scale.set(k, 1, k); ring.scale.setScalar(0.15 + 0.85 * ph(t, 0, 0.2)); spokes.scale.copy(ring.scale); };
+      cc.stats = () => [['크기 예', '수십 m급 구상 (크기를 키워도 같은 원리)'], ['방법', '무중력에서 테두리 안에 액체를 채우면 표면장력으로 매끈한 오목면이 생김 (FLUTE 구상)'], ['장점', '거울을 깎고 닦을 필요가 없음, 아주 크게 만들 수 있음'], ['어려운 점', '액체가 흔들리거나 증발하지 않게, 모양 조절'], ['단계', '아이디어 단계 (논문·실험 연구, 실제 계획 없음)']];
+    } else {
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(4.5, 96).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: zoneTex(), transparent: true, side: THREE.DoubleSide, depthWrite: false })); tel.add(lens);
+      const det = mkSat(0.8, M.bus); tel.add(det);
+      const cone = lineObj(MC.star, 12); tel.add(cone);
+      addName('얇은 회절 렌즈판 (동심원 무늬로 빛을 모음)', 0, 1.4, 0, 0.34); addName('멀리 떨어진 별도 우주선에 초점 · 아이디어 단계 · 축척 아님', 0, -9.6, 0, 0.26);
+      ctx.extent = 26; ctx.center = new V3(0, -5, 0);
+      cc.anim = t => {
+        const k = 0.1 + 0.9 * ph(t, 0.05, 0.6), d = ph(t, 0.5, 0.95); lens.scale.set(k, 1, k);
+        det.position.set(0, lerp(-2, -8.5, d), 0); cone.visible = t > 0.95;
+        for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; setLine(cone, i, new V3(4.4 * k * Math.cos(a), 0, 4.4 * k * Math.sin(a)), det.position); }
+      };
+      cc.stats = () => [['크기 예', '수 m~수십 m 얇은 막'], ['방법', '거울 대신 얇은 판에 동심원 무늬를 새겨 빛을 꺾어 모음(렌즈 역할)'], ['장점', '아주 얇고 가벼워 크게 만들기 쉬움'], ['어려운 점', '초점이 아주 멀어 렌즈와 카메라를 다른 우주선에 싣고 줄 맞춰 날아야 함, 한 번에 좁은 색만 잘 모임'], ['단계', '아이디어 단계 (계산·시험 연구, 실제 계획 없음)']];
+    }
+  }
+  if (S.view !== 'tel') setView('tel');
+  if (fit) fitCamera(); else { holder.position.set(0, 0, 0); holder.rotation.set(0, 0, 0); holder.scale.setScalar(1); }
+  applyT(S.t); updateStats();
+}
+
+// ---------- 거울 맞추기 (핵심 조절: 제임스웹 방식 따라 하기 · 직접 조절 · 초점) ----------
+const AL_N = 256, AL_DPX = 96;   // 상 격자, 동공 지름 픽셀 → 1 λ/D = 2.67 픽셀, 상 반경 48 λ/D
+function alResetFor(n) {
+  AL.nSeg = n; AL.base = alignBase(n); AL.err = alignTarget(AL.base, 4); AL.step = 4; AL.sel = 0; AL.anim = null; AL.dirty = true;
+  const sel = $('alnSel'); if (sel) { sel.innerHTML = ''; for (let i = 0; i < n; i++) sel.add(new Option(`${i + 1}번 조각`, i)); }
+}
+function alGo(to, step, defocus) {
+  AL.anim = { from: AL.err.map(e => ({ ...e })), to, f0: AL.defocus, f1: defocus ?? AL.defocus, t0: performance.now(), dur: 1500 };
+  if (step != null) AL.step = step;
+  alSync();
+}
+const alShown = () => !!ctx.segs && $('alnSec').style.display !== 'none' && !$('panel').classList.contains('hide');
+function alTick(now) {
+  const A = AL.anim;
+  if (A) {
+    const k = Math.min(1, (now - A.t0) / A.dur), e = k * k * (3 - 2 * k);
+    AL.err = A.from.map((a, i) => ({ dx: lerp(a.dx, A.to[i].dx, e), dy: lerp(a.dy, A.to[i].dy, e), p: lerp(a.p, A.to[i].p, e) }));
+    AL.defocus = lerp(A.f0, A.f1, e);
+    if (k >= 1) { AL.anim = null; alSync(); }
+    AL.dirty = true;
+  }
+  if (AL.dirty && now - AL.last > 90 && alShown()) { AL.last = now; AL.dirty = false; drawAlign(); }
+}
+function drawAlign() {
+  const cv = $('alnC'); if (!cv || !ctx.segs) return;
+  const segs = ctx.segs.map(g => ({ ...g, x: g.x - (ctx.opt.x0 || 0) }));
+  const ps = psfFromPupil(makeAlignPupil(segs, S.seg, ctx.Deff, { N: AL_N, Dpx: AL_DPX, err: AL.err, defocus: AL.defocus }), true);
+  const spread = AL.err.reduce((m, e) => Math.max(m, Math.abs(e.dx), Math.abs(e.dy)), 0);
+  const zoom = spread < 4 && Math.abs(AL.defocus) < 1.2, half = zoom ? 14 : 48, pp = AL_N / AL_DPX;
+  const W = 2 * Math.round(half * pp) + 1, h = (W - 1) / 2, c0 = AL_N / 2, img = ps.img;
+  cv.width = cv.height = W;
+  const g = cv.getContext('2d'), im = g.createImageData(W, W);
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const v = img[(c0 + y - h) * AL_N + (c0 + x - h)] || 0, t = Math.min(1, Math.max(0, (Math.log10(v + 1e-30) + 5) / 5)), o = 4 * (y * W + x);
+    im.data[o] = 255 * Math.min(1, t * 2.2); im.data[o + 1] = 255 * Math.min(1, Math.max(0, t * 2.2 - 0.7)); im.data[o + 2] = 255 * Math.min(1, 0.25 + t * 1.2 - Math.max(0, t - 0.6) * 1.6); im.data[o + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  AL.view = { h, pp, zoom };
+  const nums = !zoom && (AL.tab === 'man' || (AL.tab === 'jw' && ALIGN_STEPS[AL.step].nums));
+  if (nums) {
+    g.font = `bold ${Math.round(W / 22)}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    AL.err.forEach((e, i) => {
+      const x = h + e.dx * pp, y = h + e.dy * pp; if (x < 0 || y < 0 || x > W || y > W) return;
+      g.fillStyle = i === AL.sel && AL.tab === 'man' ? '#ff8a3d' : 'rgba(77,227,255,.95)'; g.fillText(String(i + 1), x, y - W / 26);
+    });
+  }
+  if (AL.tab === 'man' && !zoom) { const e = AL.err[AL.sel]; if (e) { g.strokeStyle = '#ff8a3d'; g.lineWidth = 1.5; g.beginPath(); g.arc(h + e.dx * pp, h + e.dy * pp, 5 * pp, 0, 2 * Math.PI); g.stroke(); } }
+  const segOk = spread < 0.5 && AL.err.every(e => Math.abs(e.p) < 0.05), why = segOk && Math.abs(AL.defocus) > 0.15 ? '초점이 안 맞음' : '조각들이 거울 하나처럼 동작하지 않음';
+  const s = ps.strehl, v = s >= 0.8 ? ['ok', '또렷함 — 제임스웹 목표 수준(파장 2 µm에서 0.8 이상)'] : s >= 0.3 ? ['', `조금 흐림 — ${why}`] : ['bad', `흐림 — ${why}`];
+  $('alnStat').innerHTML = `<p class="verdict ${v[0]}">선명도 ${s.toFixed(2)} (1 = 완벽) · ${v[1]}</p><p class="easy">${zoom ? '가운데를 크게 확대한 그림입니다.' : '넓게 본 그림입니다(점 하나 = 거울 조각 하나가 만든 별 모습).'} 색이 밝을수록 빛이 많이 모인 곳.</p>`;
+}
+function alSync() {
+  if (!$('alnSec')) return;
+  document.querySelectorAll('#alnTabs button').forEach(b => b.classList.toggle('on', b.dataset.a === AL.tab));
+  $('alnJw').hidden = AL.tab !== 'jw'; $('alnMan').hidden = AL.tab !== 'man'; $('alnFoc').hidden = AL.tab !== 'foc';
+  document.querySelectorAll('#alnSteps button').forEach((b, i) => b.classList.toggle('on', i === AL.step));
+  const st = ALIGN_STEPS[AL.step];
+  if (AL.tab === 'jw') $('alnMsg').innerHTML = `<b>${AL.step + 1}/5 ${st.name}</b> — ${st.tip}` + (AL.step === 4 && !AL.touched ? ' <br>▶ "1 펼친 직후"부터 차례로 눌러 보세요.' : '') + ' <span class="mu">(실제 제임스웹은 2022년 2~4월 약 3개월 걸림)</span>';
+  else if (AL.tab === 'man') $('alnMsg').textContent = `${AL.sel + 1}번 조각을 움직입니다. 기울기를 바꾸면 그 조각의 점이 움직이고, 높이를 바꾸면 가운데 별 모양이 얼룩집니다.`;
+  else $('alnMsg').textContent = '부경(작은 거울) 위치가 맞지 않으면 별이 동그랗게 퍼져 흐려집니다.';
+  const e = AL.err[AL.sel] || { dx: 0, dy: 0, p: 0 };
+  if (!AL.anim) { $('alnX').value = e.dx; $('alnY').value = e.dy; $('alnP').value = e.p; $('alnF').value = AL.defocus; }
+  $('alnXV').textContent = e.dx.toFixed(1); $('alnYV').textContent = e.dy.toFixed(1); $('alnPV').textContent = e.p.toFixed(2) + ' 파장';
+  $('alnFV').textContent = AL.defocus.toFixed(2) + ' 파장'; $('alnSel').value = AL.sel;
+  AL.dirty = true;
+}
+function alApply3D() {   // 조각 기울기·높이, 부경 위치를 3D에 과장해서 보여 줌
+  if (!ctx.order || ctx.concept || (ctx.mode === 'B' && S.t < 1)) return;
+  const kT = 0.0035, kP = 0.012 * ctx.Deff, man = AL.tab === 'man';
+  for (const gm of ctx.order) {
+    const e = AL.err[gm.userData.si]; if (!e) continue;
+    gm.rotation.x += e.dy * kT; gm.rotation.z -= e.dx * kT; gm.position.y += Math.max(-1.5, Math.min(1.5, e.p)) * kP;
+    const mm = gm.children[0]; if (mm && mm.isMesh) mm.material = man && gm.userData.si === AL.sel ? M.mirrorSel : M.mirror;
+  }
+}
+
 // ---------- 통계 패널 ----------
 const fmtM = kg => kg >= 1000 ? (kg / 1000).toFixed(1) + ' t' : Math.round(kg) + ' kg';
 function updateStats() {
+  if (ctx.concept) { $('stats').innerHTML = '<table>' + ctx.concept.stats().map(r => `<tr><td class="mu">${r[0]}</td><td>${r[1]}</td></tr>`).join('') + '</table>'; return; }
   const st = buildStats(S, ctx.segs, ctx.Deff, ctx.opt, ctx.rs), fit = fitCheck(S.mode, S, ctx.Deff, ctx.xh, st.N), o = ctx.opt;
   ctx.Aeff = st.Aeff;
   const rows = [
@@ -882,11 +1079,30 @@ const CE = {};
 (function buildPanel() {
   const pn = $('panel');
   pn.innerHTML = '<h2>설계 파라미터</h2><div id="sl"></div>' +
+    '<div id="dRows"><div class="row"><label><span>망원경 수 · 배치</span></label><select id="dN"><option value="4">4대 · X자(직사각형) 배치 (LIFE 기본안)</option><option value="5">5대 · 오각형 배치 (최근 제안)</option></select></div>' +
+    '<div class="row"><label><span>망원경 거울 지름</span><span id="dCollV"></span></label><input type="range" id="dColl" min="1" max="3.5" step="0.1"></div>' +
+    '<div class="row"><label><span>망원경 사이 거리 (짧은 쪽)</span><span id="dBaseV"></span></label><input type="range" id="dBase" min="10" max="100" step="1"></div></div>' +
+    '<div id="fRows"><div class="row"><label><span>미래형 종류 (아이디어 단계)</span></label><select id="fType"><option value="mem">부풀린 막 거울 (OASIS 구상)</option><option value="fluid">우주에서 만드는 액체 거울 (FLUTE 구상)</option><option value="lens">얇은 회절 렌즈판</option></select></div></div>' +
     '<div class="chk" id="holeRow"><input type="checkbox" id="hole"><label for="hole">중앙 분할거울 제외(부경 광로)</label></div>' +
     '<div class="row" id="eacRow"><label><span>HWO 구성(EAC)</span></label><select id="eac"></select></div>' +
-    '<div class="row"><label><span>발사체</span></label><select id="launcher"></select></div>' +
+    '<div class="row" id="lnRow"><label><span>발사체</span></label><select id="launcher"></select></div>' +
     '<div class="chk" id="ssRow"><input type="checkbox" id="ssh"><label for="ssh">스타셰이드(별도 우주선) 표시</label></div>' +
     '<h2>성능 요약</h2><div id="stats"></div>' +
+    '<div id="alnSec"><h2>🔧 거울 맞추기 (핵심 조절)</h2><p class="easy">큰 우주망원경은 렌즈 대신 거울 조각을 씁니다. 조각마다 뒤에 작은 모터가 있어 기울기·높이를 아주 조금씩 움직여 맞춥니다(제임스웹: 조각당 7개, 부경 포함 모두 132개).</p>' +
+    '<div class="seg3" id="alnTabs"><button type="button" data-a="jw">제임스웹 방식</button><button type="button" data-a="man">직접 조절</button><button type="button" data-a="foc">초점</button></div>' +
+    '<canvas id="alnC" width="257" height="257" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:8px auto 4px;background:#000;border:1px solid var(--bd);border-radius:8px;cursor:pointer"></canvas>' +
+    '<div id="alnMsg" class="easy"></div>' +
+    '<div id="alnJw"><div class="steps" id="alnSteps"></div><div class="row2"><button type="button" class="btn" id="alnPrev">◀ 이전</button><button type="button" class="btn" id="alnNext">다음 단계 ▶</button></div></div>' +
+    '<div id="alnMan" hidden><div class="row"><label><span>고를 거울 조각</span></label><select id="alnSel"></select></div>' +
+    '<div class="row"><label><span>좌우 기울기 (점이 좌우로 움직임)</span><span id="alnXV"></span></label><input type="range" id="alnX" min="-40" max="40" step="0.5"></div>' +
+    '<div class="row"><label><span>앞뒤 기울기 (점이 위아래로 움직임)</span><span id="alnYV"></span></label><input type="range" id="alnY" min="-40" max="40" step="0.5"></div>' +
+    '<div class="row"><label><span>높이 (앞뒤 위치)</span><span id="alnPV"></span></label><input type="range" id="alnP" min="-1" max="1" step="0.01"></div>' +
+    '<div class="row2"><button type="button" class="btn" id="alnOne">이 조각 맞춤</button><button type="button" class="btn" id="alnAll">모두 맞춤</button><button type="button" class="btn" id="alnMess">흐트러뜨리기</button></div>' +
+    '<p class="easy">그림 속 점(번호)을 누르면 그 조각이 골라지고, 3D에서 주황색으로 보입니다.</p></div>' +
+    '<div id="alnFoc" hidden><div class="row"><label><span>부경 앞뒤 위치 (초점)</span><span id="alnFV"></span></label><input type="range" id="alnF" min="-3" max="3" step="0.05"></div>' +
+    '<div class="row2"><button type="button" class="btn" id="alnF0">초점 맞춤</button></div>' +
+    '<p class="easy">작은 거울(부경)을 앞뒤로 아주 조금(실제로는 수~수십 µm) 움직이면 별이 흐려졌다 또렷해집니다. 3D에서는 크게 과장해 보여 줍니다. 값 = 거울 가장자리에서 빛이 늦게 도착하는 정도(파장 배수).</p></div>' +
+    '<div id="alnStat"></div></div>' +
     '<h2>표시</h2><div class="chk"><input type="checkbox" id="rays" checked><label for="rays">광선 경로</label></div>' +
     '<div class="chk" id="nasaRow"><input type="checkbox" id="nasa" checked><label for="nasa">NASA 실제 3D 모델 사용 <span id="nasaSt" style="color:var(--mu)"></span></label></div>' +
     '<div class="row"><label><span>저궤도 고도 (🛰 LEO 뷰·한국형)</span><span id="leoHV"></span></label><input type="range" id="leoH" min="350" max="1200" step="10"></div>' +
@@ -895,7 +1111,7 @@ const CE = {};
     '<div class="chk"><input type="checkbox" id="phot" checked><label for="phot">광자 애니메이션</label></div>' +
     '<div class="chk"><input type="checkbox" id="auto"><label for="auto">자동 회전</label></div>' +
     '<p class="note">근거(최신 논문): <a href="https://arxiv.org/abs/2601.11803" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 개념·기술 성숙(arXiv 2601.11803)</a> · <a href="https://arxiv.org/abs/2607.02773" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 기술개발계획(arXiv 2607.02773)</a> · <a href="https://arxiv.org/abs/2507.02812" target="_blank" rel="noopener" style="color:var(--ac2)">액체거울 FLUTE(arXiv 2507.02812)</a></p><p class="note">거울 크기×링 수로 구경이 결정됩니다(최대 약 400장). 질량·적합성은 공개 자료 기반 개략치이며 구조·열·광학 정밀 해석을 대체하지 않습니다. 광학계는 카세그레인 단순화(JWST의 3반사경 아님).</p>' +
-    '<h2>더 알아보기 (고급 계산)</h2><p class="easy">아래 상자를 누르면 펼쳐집니다. 접혀 있는 동안은 계산하지 않아 화면이 가볍습니다.</p>' +
+    '<div id="advWrap"><h2>더 알아보기 (고급 계산)</h2><p class="easy">아래 상자를 누르면 펼쳐집니다. 접혀 있는 동안은 계산하지 않아 화면이 가볍습니다.</p>' +
     '<details class="adv" id="advPsf"><summary>⭐ 별빛 번짐 무늬 · 거울 정렬 오차</summary><p class="easy">거울 조각들이 아주 조금씩 어긋나면 별 사진이 얼마나 흐려지는지, 별빛을 가리는 장치(코로나그래프)를 쓰면 별 바로 옆이 얼마나 어두워지는지 어림 계산합니다. 용어: PSF = 별 하나가 찍힌 모양, piston·tip/tilt = 거울 조각의 높이·기울기 어긋남, IWA = 별빛을 가리는 원의 반지름, λ/D = 망원경이 구분할 수 있는 가장 작은 각도, Strehl = 1에 가까울수록 선명.</p>' +
     '<canvas id="psf" width="206" height="206" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:0 auto;background:#000;border:1px solid var(--bd);border-radius:8px"></canvas>' +
     '<div class="row"><label><span>표시</span></label><select id="psfMode"><option value="raw">원시 PSF (코로나그래프 없음)</option><option value="cor">코로나그래프 후 (이상적, 별빛 제거)</option></select></div>' +
@@ -916,7 +1132,7 @@ const CE = {};
     '<details class="adv" id="advSh"><summary>☂ 차양막 비교 (최근 논문 vs 제임스웹)</summary>' +
     '<div class="row"><label><span>3D 차양막 종류 (제임스웹 실사 제외)</span></label><select id="shType"></select></div>' +
     '<div id="shCmp"></div>' +
-    '</details>';
+    '</details></div>';
   const sl = $('sl');
   for (const [k, name, unit, min, max, step, modes, lg] of CONTROLS) {
     const row = document.createElement('div'); row.className = 'row';
@@ -960,6 +1176,39 @@ const CE = {};
   $('shT').addEventListener('change', e => { S.shieldTemp = e.target.checked; applyShieldTemp(); });
   $('nasa').addEventListener('change', e => { S.nasa = e.target.checked; build(false); });
   $('auto').addEventListener('change', e => { S.auto = e.target.checked; });
+  // ③ 편대 간섭계 · 미래형
+  const dShow = () => { $('dCollV').textContent = S.dColl.toFixed(1) + ' m'; $('dBaseV').textContent = S.dBase.toFixed(0) + ' m'; };
+  $('dN').value = S.dN; $('dColl').value = S.dColl; $('dBase').value = S.dBase; $('fType').value = S.fType; dShow();
+  $('dN').addEventListener('change', e => { S.dN = +e.target.value; build(false); });
+  for (const k of ['dColl', 'dBase']) $(k).addEventListener('input', e => { S[k] = +e.target.value; dShow(); scheduleBuild(); });
+  $('fType').addEventListener('change', e => { S.fType = e.target.value; S.t = 0; S.playing = true; build(false); });
+  // 거울 맞추기
+  const steps = $('alnSteps');
+  ALIGN_STEPS.forEach((st, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = `${i + 1} ${st.name}`; b.onclick = () => { AL.touched = true; alGo(alignTarget(AL.base, i), i); }; steps.appendChild(b); });
+  $('alnPrev').onclick = () => { AL.touched = true; const i = Math.max(0, AL.step - 1); alGo(alignTarget(AL.base, i), i); };
+  $('alnNext').onclick = () => { AL.touched = true; const i = AL.step >= 4 ? 0 : AL.step + 1; alGo(alignTarget(AL.base, i), i); };
+  document.querySelectorAll('#alnTabs button').forEach(b => b.addEventListener('click', () => {
+    AL.tab = b.dataset.a;
+    const messy = AL.err.some(e => Math.hypot(e.dx, e.dy) > 0.5 || Math.abs(e.p) > 0.05);
+    if (AL.tab === 'foc' && messy) alGo(AL.err.map(() => ({ dx: 0, dy: 0, p: 0 })), 4);   // 초점 연습은 조각을 다 맞춘 상태에서
+    else alSync();
+  }));
+  $('alnSel').addEventListener('change', e => { AL.sel = +e.target.value; alSync(); });
+  for (const [id, k] of [['alnX', 'dx'], ['alnY', 'dy'], ['alnP', 'p']]) $(id).addEventListener('input', e => { AL.anim = null; const er = AL.err[AL.sel]; if (er) er[k] = +e.target.value; alSync(); });
+  $('alnOne').onclick = () => { const to = AL.err.map((e, i) => i === AL.sel ? { dx: 0, dy: 0, p: 0 } : { ...e }); alGo(to); };
+  $('alnAll').onclick = () => alGo(AL.err.map(() => ({ dx: 0, dy: 0, p: 0 })), 4);
+  $('alnMess').onclick = () => alGo(alignTarget(AL.base, 0), 0);
+  $('alnF').addEventListener('input', e => { AL.anim = null; AL.defocus = +e.target.value; alSync(); });
+  $('alnF0').onclick = () => alGo(AL.err.map(e => ({ ...e })), null, 0);
+  $('alnC').addEventListener('click', e => {   // 그림 속 점을 누르면 그 조각 고르기
+    const v = AL.view; if (!v || v.zoom) return;
+    const r = e.currentTarget.getBoundingClientRect(), W = e.currentTarget.width, sc = W / r.width;
+    const lx = ((e.clientX - r.left) * sc - v.h) / v.pp, ly = ((e.clientY - r.top) * sc - v.h) / v.pp;
+    let best = -1, bd = 8;
+    AL.err.forEach((er, i) => { const d = Math.hypot(er.dx - lx, er.dy - ly); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { AL.sel = best; AL.tab = 'man'; alSync(); }
+  });
+  alSync();
 })();
 function showVal(k) {
   const c = CE[k], v = S[k];
@@ -970,27 +1219,36 @@ function syncUI() {
     const c = CE[k]; c.row.style.display = c.modes.includes(S.mode) ? '' : 'none';
     c.inp.value = c.lg ? Math.log10(S[k]) : S[k]; showVal(k);
   }
-  $('hole').checked = S.hole; $('holeRow').style.display = S.mode === 'C' ? 'none' : '';
+  const cpt = S.mode === 'D' || S.mode === 'F';
+  $('hole').checked = S.hole; $('holeRow').style.display = S.mode === 'C' || cpt ? 'none' : '';
+  $('lnRow').style.display = cpt ? 'none' : ''; $('dRows').style.display = S.mode === 'D' ? '' : 'none'; $('fRows').style.display = S.mode === 'F' ? '' : 'none';
+  $('alnSec').style.display = cpt ? 'none' : ''; $('advWrap').style.display = cpt ? 'none' : ''; eb.style.display = lb.style.display = cpt ? 'none' : '';
   $('launcher').value = S.launcher; $('eac').value = S.eac || 'eac1'; $('eacRow').style.display = S.mode === 'C' ? '' : 'none'; $('ssRow').style.display = S.mode === 'C' ? '' : 'none'; $('ssh').checked = !!S.starshade;
   $('nasaRow').style.display = S.jwst ? '' : 'none'; $('nasa').checked = !!S.nasa; $('nasaSt').textContent = NASA.state === 'fail' ? '(불러오기 실패 → 근사 모델)' : NASA.state === 'loading' ? '(불러오는 중…)' : '';
   $('info').innerHTML = INFO[infoKey()]; $('info').style.display = '';
   document.querySelectorAll('.tab[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === infoKey()));
-  $('tlab').textContent = S.mode === 'B' ? '조립 진행' : '전개 진행';
+  syncBar();
 }
 let bt = null;
 function scheduleBuild() { clearTimeout(bt); bt = setTimeout(() => { build(false); }, 120); }
 function setMode(m) {
   const mm = (m === 'J' || m === 'K') ? 'A' : m;
+  if ((m === 'D' || m === 'F') && S.view !== 'tel') setView('tel');
   Object.assign(S, PRESETS[mm], m === 'K' ? KOREA : {}, { mode: mm, jwst: m === 'J', korea: m === 'K', t: 0, playing: true });
   S.iwa = m === 'K' ? 3 : 3.5; S.budTarget = m === 'K' ? 'cyg61A' : 'sun';
   if ($('iwa')) { $('iwa').value = S.iwa; $('budT').value = S.budTarget; }
   syncUI(); build(); syncBar();
 }
 const tabs = $('tabs');
-for (const m of ['A', 'B', 'C', 'J', 'K']) {
+function addTab(m) {
   const b = document.createElement('button'); b.className = 'tab'; b.dataset.m = m;
   b.textContent = `${MODE_NAME[m]} (${MODE_SUB[m]})`; b.onclick = () => setMode(m); tabs.appendChild(b);
 }
+for (const [g, ms] of GROUPS) {   // 형태별 묶음 이름 + 탭
+  const sp = document.createElement('span'); sp.className = 'grp'; sp.textContent = g; tabs.appendChild(sp);
+  ms.forEach(addTab);
+}
+{ const sep = document.createElement('span'); sep.className = 'sep'; tabs.appendChild(sep); addTab('J'); }   // 제임스웹 실사는 따로(①형 실제 예)
 const eb = document.createElement('button'); eb.className = 'btn'; eb.textContent = '🌍 지구에서 본 심우주';
 const lb = document.createElement('button'); lb.className = 'btn'; lb.textContent = '🛰 저궤도(LEO)';
 const ib = document.createElement('button'); ib.className = 'btn'; ib.textContent = 'ⓘ 설명';
@@ -1007,7 +1265,7 @@ $('tl').addEventListener('input', e => { S.t = +e.target.value / 1000; S.playing
 function syncBar() {
   $('tl').value = Math.round(S.t * 1000); $('play').textContent = S.playing ? '⏸ 일시정지' : (S.t >= 1 ? '↺ 다시' : '▶ 재생');
   const extra = S.mode === 'B' && ctx.order ? ` ${ctx.count || 0}/${ctx.order.length}` : ` ${Math.round(S.t * 100)}%`;
-  $('tlab').textContent = (S.mode === 'B' ? '조립' : '전개') + extra;
+  $('tlab').textContent = (S.mode === 'B' ? '조립' : S.mode === 'D' ? '편대 배치' : S.mode === 'F' ? '펼치기' : '전개') + extra;
 }
 
 // ---------- 이름표·절차적 텍스처 (지구·구름: 저궤도 뷰에서 사용) ----------
@@ -1222,6 +1480,7 @@ function frame(now) {
     if (S.t >= 1) S.playing = false;
   }
   syncBar();
+  alTick(now);
   applyT(S.t);
   if (S.view === 'leo') updateLEO(now / 1000); else if (S.view === 'earth') updateEarthView(now / 1000);
   updatePhotons(now / 1000);

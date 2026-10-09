@@ -75,3 +75,21 @@ details.adv>:last-child{margin-bottom:10px}
 .shcard>b{color:var(--tx)}
 .shcard dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:6px 0 0}
 .shcard dt{color:var(--mu);white-space:nowrap}.shcard dd{margin:0;color:var(--ink2)}
+/* 형태 묶음 이름 (① ② ③ 기타) */
+.tabs .grp{flex:0 0 auto;align-self:center;font-size:11px;color:var(--mu);margin:0 0 0 6px;white-space:nowrap}
+.tabs .grp:first-child{margin-left:0}
+/* 거울 맞추기 */
+.seg3{display:flex;gap:4px;margin:6px 0}
+.seg3 button,.steps button{flex:1;background:var(--pn);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:7px 4px;font:inherit;font-size:12px;cursor:pointer}
+.seg3 button.on,.steps button.on{border-color:var(--ac);color:var(--ac)}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:6px 0}
+.steps button{padding:6px 2px;font-size:11px;line-height:1.25}
+.row2{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}
+.row2 .btn{flex:1;padding:7px 6px;font-size:12px}
+#alnSec .mu{color:var(--mu)}
+@media (max-width:760px){
+ #alnC{max-width:150px!important}   /* 폰: 작은 설계창 안에서 별 그림과 단계 버튼이 함께 보이게 */
+ .steps{grid-template-columns:repeat(5,1fr)}
+ .steps button{font-size:10.5px;padding:5px 1px}
+ .tabs .grp{font-size:10.5px}
+}

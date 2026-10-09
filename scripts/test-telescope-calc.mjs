@@ -153,3 +153,24 @@ for (const m of ['A', 'B', 'C']) {
   const bud = C.detectionBudget({ area: 8.5, lamNm: 550, dLamNm: 110, dPc: a.d, aAU: a.aAU, Tstar: a.T, RstarM: a.RstarM, cRaw: 1e-8, cStab: 0, tauCore: 0.12, fp: a.fp });
   console.log('   3.5mST·61 Cyg A 예시', { 이격mas: +bud.sepMas.toFixed(0), FRN_ppt: +(bud.frn * 1e12).toFixed(1), 검출확률: +bud.power.toFixed(3), 필요시간h: +bud.tReqH.toFixed(0) });
 }
+
+// 10) 거울 맞추기: 다 맞으면 Strehl 1, 한 조각을 옮기면 그 점이 (dx, dy) 위치에 생김, 높이 반 파장 어긋남은 선명도를 떨어뜨림
+{
+  const segs = C.hexLayout(2, 1.32, C.GAP, true), D = C.apertureOf(segs, 1.32), N = 256, Dpx = 96, c = N / 2, pp = N / Dpx;
+  const zero = segs.map(() => ({ dx: 0, dy: 0, p: 0 }));
+  const ok = C.psfFromPupil(C.makeAlignPupil(segs, 1.32, D, { N, Dpx, err: zero }), true);
+  eq(ok.strehl, 1, '거울 맞추기: 다 맞으면 Strehl 1', 1e-9);
+  const e1 = zero.map(e => ({ ...e })); e1[0] = { dx: 20, dy: -10, p: 0 };
+  const im = C.psfFromPupil(C.makeAlignPupil(segs, 1.32, D, { N, Dpx, err: e1 }), true).img;
+  let bx = 0, by = 0, bv = -1;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const r = Math.hypot(x - c, y - c); if (r > 8 * pp && im[y * N + x] > bv) { bv = im[y * N + x]; bx = x; by = y; } }
+  eq((bx - c) / pp, 20, '옮긴 조각의 점 위치 x (λ/D)', 1.2);
+  eq((by - c) / pp, -10, '옮긴 조각의 점 위치 y (λ/D)', 1.2);
+  const ep = zero.map((e, i) => ({ ...e, p: i % 2 ? 0.25 : -0.25 }));
+  const sp = C.psfFromPupil(C.makeAlignPupil(segs, 1.32, D, { N, Dpx, err: ep }), true).strehl;
+  if (!(sp < 0.2)) { console.log('FAIL 높이 반 파장 어긋남이면 선명도 낮아야 함', sp); process.exitCode = 1; } else console.log('ok   높이 ±¼파장 어긋남 Strehl', sp.toFixed(3));
+  const sd = C.psfFromPupil(C.makeAlignPupil(segs, 1.32, D, { N, Dpx, err: zero, defocus: 1 }), true).strehl;
+  if (!(sd < 0.5)) { console.log('FAIL 초점 1파장 어긋남이면 흐려져야 함', sd); process.exitCode = 1; } else console.log('ok   초점 1파장 어긋남 Strehl', sd.toFixed(3));
+  const b = C.alignBase(segs.length);
+  eq(C.alignTarget(b, 4).reduce((m, e) => Math.max(m, Math.abs(e.p)), 0) <= 0.02 ? 1 : 0, 1, '정밀 맞춤 단계 높이 어긋남 ≤ 0.02파장', 0);
+}

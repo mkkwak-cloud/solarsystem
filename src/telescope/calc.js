@@ -421,3 +421,53 @@ export const SHIELD_TYPES = {
     rows: { mission: 'FOSSIL (ESA M8 제안, 2040년대) · Planck 계승', layers: 'MLI 20겹 + V-groove 3단 + 25 K 능동 차폐', size: '지름 ~2–3.2 m (소형)', film: '알루미늄 허니컴 패널', coat: 'VDA 뜨거운 면 · 저방출 차가운 면 · 고방출 우주쪽 면', deploy: '고정형 (전개 없음)', mass: '—', target: '기기 4.5 K · 검출기 50 mK (냉동기)', pub: '~130 K → ~90 K → ~50 K' },
   },
 };
+
+// ---------- 거울 맞추기 (제임스웹 방식 재현·직접 조절·초점) ----------
+// 분할거울마다 어긋남 e = { dx, dy: 그 조각이 만드는 별 상의 위치 어긋남(λ/D 단위, 조각 기울기에 해당), p: 높이 어긋남(파장 배수) }.
+// defocus: 초점 어긋남(동공 가장자리에서의 파면 지연, 파장 배수). 반환은 makePupil 과 같은 { N, A, W(rad), dx } → psfFromPupil 에 그대로 넣음.
+// 상 격자: 1 λ/D = N/Dpx 픽셀, 상 반경 = Dpx/2 λ/D.
+export function makeAlignPupil(segs, s, Deff, o = {}) {
+  const N = o.N || 256, dx = Deff / (o.Dpx || 96), half = s / 2, R = s / SQ3, err = o.err || [], fd = o.defocus || 0;
+  const A = new Float64Array(N * N), W = new Float64Array(N * N), TAU = 2 * Math.PI, r2 = (Deff / 2) * (Deff / 2);
+  const nx = [Math.cos(Math.PI / 6), 0, -Math.cos(Math.PI / 6)], nz = [Math.sin(Math.PI / 6), 1, Math.sin(Math.PI / 6)];
+  segs.forEach((g, si) => {
+    const e = err[si] || { dx: 0, dy: 0, p: 0 };
+    const i0 = Math.floor((g.x - R) / dx + N / 2), i1 = Math.ceil((g.x + R) / dx + N / 2);
+    const j0 = Math.floor((g.z - R) / dx + N / 2), j1 = Math.ceil((g.z + R) / dx + N / 2);
+    for (let j = Math.max(0, j0); j <= Math.min(N - 1, j1); j++) {
+      for (let i = Math.max(0, i0); i <= Math.min(N - 1, i1); i++) {
+        const X = (i - N / 2) * dx, Z = (j - N / 2) * dx, px = X - g.x, pz = Z - g.z;
+        if (Math.abs(px * nx[0] + pz * nz[0]) > half || Math.abs(pz) > half || Math.abs(px * nx[2] + pz * nz[2]) > half) continue;
+        A[j * N + i] = 1; W[j * N + i] = TAU * (e.p + (e.dx * px + e.dy * pz) / Deff + fd * (X * X + Z * Z) / r2);
+      }
+    }
+  });
+  return { N, A, W, dx };
+}
+
+// 제임스웹 거울 맞추기 단계(2022년 2~4월, 실제 과정을 단순화). base: 조각별 처음 어긋남(펼친 직후)
+export const ALIGN_STEPS = [
+  { name: '펼친 직후', tip: '거울을 막 펼친 상태. 조각마다 조금씩 기울어 별 하나가 조각 수만큼의 점으로 흩어져 보입니다.', k: 1, kp: 1 },
+  { name: '점 찾기', tip: '어느 점이 어느 거울 조각의 것인지 하나씩 움직여 보며 찾습니다(점 위의 번호 = 조각 번호).', k: 1, kp: 1, nums: true },
+  { name: '한데 모으기', tip: '조각마다 기울기를 고쳐 흩어진 점들을 한가운데로 모읍니다. 아직 높이가 안 맞아 얼룩진 모양입니다.', k: 0, kp: 1 },
+  { name: '높이 맞추기', tip: '조각들의 높이(앞뒤 위치)를 파장 크기 정도까지 맞춥니다(거친 맞춤).', k: 0, kp: 0.12 },
+  { name: '정밀 맞춤', tip: '높이를 파장의 100분의 1 수준까지 맞춰 조각들이 거울 하나처럼 동작합니다. 별이 또렷한 한 점(+빛살 무늬)이 됩니다.', k: 0, kp: 0.01 },
+];
+export function alignTarget(base, step) {
+  const S = ALIGN_STEPS[step];
+  return base.map(b => ({ dx: b.dx * S.k, dy: b.dy * S.k, p: b.p * S.kp }));
+}
+// 펼친 직후의 어긋남(고정 시드): 점들이 반경 rMax(λ/D) 안에 서로 떨어져 흩어지게
+export function alignBase(nSeg, rMax = 36, seed = 11) {
+  const rnd = mulberry32(seed), out = [], minD = Math.min(14, rMax * 1.6 / Math.sqrt(nSeg));
+  for (let i = 0; i < nSeg; i++) {
+    let x = 0, y = 0;
+    for (let tries = 0; tries < 60; tries++) {
+      const r = rMax * Math.sqrt(0.08 + 0.92 * rnd()), a = 2 * Math.PI * rnd();
+      x = r * Math.cos(a); y = r * Math.sin(a);
+      if (out.every(o => Math.hypot(o.dx - x, o.dy - y) >= minD)) break;
+    }
+    out.push({ dx: x, dy: y, p: (rnd() - 0.5) * 4 });
+  }
+  return out;
+}

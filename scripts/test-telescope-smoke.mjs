@@ -42,7 +42,7 @@ class Geo {
 }
 const generic = (...a) => ({ ...(typeof a[0] === 'object' ? a[0] : {}) });
 const objs = ['Group', 'Mesh', 'Points', 'LineSegments', 'LineLoop', 'Line', 'Sprite'];
-const geos = ['BufferGeometry', 'CylinderGeometry', 'SphereGeometry', 'BoxGeometry', 'CircleGeometry', 'ShapeGeometry', 'RingGeometry', 'PlaneGeometry'];
+const geos = ['BufferGeometry', 'CylinderGeometry', 'SphereGeometry', 'BoxGeometry', 'CircleGeometry', 'ShapeGeometry', 'RingGeometry', 'PlaneGeometry', 'TorusGeometry'];
 let renders = 0;
 globalThis.__THREE = new Proxy({}, {
   get(_, k) {
@@ -91,7 +91,7 @@ fs.copyFileSync(new URL('calc.js', root), path.join(dir, 'calc.js'));
 let main = fs.readFileSync(new URL('main.js', root), 'utf8');
 if (!main.includes("THREE = await import('three');")) throw new Error('main.js 의 three 불러오기 줄을 찾지 못함');
 main = main.replace("THREE = await import('three');", 'THREE = globalThis.__THREE;');
-fs.writeFileSync(path.join(dir, 'main.mjs'), main + '\nglobalThis.__T = { S, setMode, setView, getCtx: () => ctx, applyT, build, frame, PRESETS };\n');
+fs.writeFileSync(path.join(dir, 'main.mjs'), main + '\nglobalThis.__T = { S, setMode, setView, getCtx: () => ctx, applyT, build, frame, PRESETS, AL, alGo, alignTarget, drawAlign };\n');
 try { await import(pathToFileURL(path.join(dir, 'main.mjs')).href); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 const T = globalThis.__T;
 let fails = 0;
@@ -113,5 +113,23 @@ for (const m of ['A', 'B', 'C', 'J', 'K']) {
   }
   T.setView('leo'); T.frame(9150); T.frame(21000); T.setView('earth'); T.frame(9200); T.S.t = 0.4; T.build(false); T.frame(9300); T.setView('tel');
 }
+// 거울 맞추기: 단계 이동·직접 조절·초점 (A 모드)
+T.setMode('A'); T.S.playing = false; T.S.t = 1;
+for (let i = 0; i < 5; i++) { T.alGo(T.alignTarget(T.AL.base, i), i); T.AL.anim.t0 = -1e9; T.frame(20000 + i); T.drawAlign(); }
+check(T.AL.err.every(e => Math.abs(e.dx) < 1e-9 && Math.abs(e.p) <= 0.02), '거울 맞추기 정밀 맞춤 후 거의 0');
+T.AL.err[0].dx = 20; T.AL.defocus = 1.5; T.AL.tab = 'man'; T.drawAlign(); T.frame(20100);
+check(/선명도/.test(els.alnStat.innerHTML), '거울 맞추기 선명도 표시');
+T.AL.defocus = 0; T.AL.tab = 'jw';
+// ③ 편대 간섭계 · 미래형 (개념 장면)
+for (const [m, patch] of [['D', { dN: 4 }], ['D', { dN: 5, dColl: 3.5, dBase: 90 }], ['F', { fType: 'mem' }], ['F', { fType: 'fluid' }], ['F', { fType: 'lens' }]]) {
+  Object.assign(T.S, patch); T.setMode(m); T.S.playing = false;
+  for (let t = 0; t <= 1.0001; t += 0.1) { T.S.t = Math.min(1, t); T.frame(30000 + t * 1000); }
+  const c = T.getCtx();
+  check(!!c.concept, m + ' 개념 장면');
+  console.log(`[${m}/${patch.fType || patch.dN}]`, strip(els.stats.innerHTML).slice(0, 160));
+  check(els.stats.innerHTML.includes('<table>'), m + ' 요약표');
+}
+T.setMode('A'); T.frame(40000);
+check(!T.getCtx().concept && T.getCtx().segs.length > 0, '개념 장면에서 다시 일반 모드로');
 console.log(fails ? `\n실패 ${fails}건` : '\n스모크 테스트 통과');
 process.exitCode = fails ? 1 : 0;
