@@ -178,8 +178,8 @@ const M = {
   bus: new THREE.MeshStandardMaterial({ color: 0xaab3c4, metalness: 0.8, roughness: 0.4 }),
   panel: new THREE.MeshStandardMaterial({ map: cellTex, color: 0xffffff, metalness: 0.25, roughness: 0.22, emissive: 0x0a1a45 }),
   panelBack: new THREE.MeshStandardMaterial({ color: 0xd8dbe2, metalness: 0.4, roughness: 0.5 }),
-  shield: new THREE.MeshStandardMaterial({ map: crinkleTex('#9aa3c4'), color: 0xdfe4f5, metalness: 0.7, roughness: 0.32, transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
-  shieldJ: new THREE.MeshStandardMaterial({ map: crinkleTex('#a79fc9'), color: 0xe6e0f7, metalness: 0.75, roughness: 0.3, transparent: true, opacity: 0.86, side: THREE.DoubleSide }),
+  shield: new THREE.MeshStandardMaterial({ map: crinkleTex('#9aa3c4'), color: 0xdfe4f5, metalness: 0.7, roughness: 0.32, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }),
+  shieldJ: new THREE.MeshStandardMaterial({ map: crinkleTex('#a79fc9'), color: 0xe6e0f7, metalness: 0.75, roughness: 0.3, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }),
   mli: new THREE.MeshStandardMaterial({ map: mliTex, color: 0xffffff, metalness: 0.6, roughness: 0.45 }),
   dish: new THREE.MeshStandardMaterial({ color: 0xe9ecf2, metalness: 0.7, roughness: 0.3, side: THREE.DoubleSide }),
   rad: new THREE.MeshStandardMaterial({ color: 0x20242e, metalness: 0.3, roughness: 0.7 }),
@@ -487,13 +487,13 @@ function build(fit = true) {
   }
   // 부품 이름표
   const nm = new THREE.Group(); ctx.names = nm; tel.add(nm);
-  const addName = (txt, x, y, z) => { const l = label(txt, 0.06 * Deff); l.position.set(x, y, z); nm.add(l); return l; };
-  addName('주경 (분할 거울)', 0, 0.16 * Deff, 0.62 * Deff);
-  if (opt.cass) { ctx.secName = addName('부경', 0, opt.d + 0.14 * Deff, 0); addName('과학 기기 (초점면)', 0, -opt.b - 0.04 * Deff - 0.15 * Deff, 0); }
-  else addName('코로나그래프·기기', 0, f + 0.10 * Deff + 0.2 * Deff, 0);
-  addName(st === 'saltus' ? 'SALTUS형 차양막 2겹 (간격 넓음)' : st === 'vgroove' ? 'V-groove 3단 (Planck·FOSSIL형)' : mode === 'C' ? '차광막(원판)' : `차양막 ${nL}겹`, sx0, yLast - 0.04 * Deff, ctx.shieldSize * 0.3);
-  addName('버스(자세제어·통신)', sx0 - 0.1 * Deff, yBus - 0.2 * Deff, -0.15 * Deff);
-  addName('고이득 안테나', sx0 + 0.12 * Deff, yBus - 0.32 * Deff, 0.1 * Deff);
+  const addName = (txt, x, y, z, minor) => { const l = label(txt, 0.06 * Deff); l.userData.minor = !!minor; l.position.set(x, y, z); nm.add(l); return l; };   // minor = 폰에서는 숨기는 작은 부품 이름
+  addName('주경', 0, 0.16 * Deff, 0.62 * Deff);
+  if (opt.cass) { ctx.secName = addName('부경', 0, opt.d + 0.14 * Deff, 0); addName('과학 기기', 0, -opt.b - 0.04 * Deff - 0.15 * Deff, 0, true); }
+  else addName('코로나그래프·기기', 0, f + 0.10 * Deff + 0.2 * Deff, 0, true);
+  addName(st === 'saltus' ? 'SALTUS형 차양막 2겹' : st === 'vgroove' ? 'V-groove 차양막 3단' : mode === 'C' ? '차광막(원판)' : `차양막 ${nL}겹`, sx0, yLast - 0.04 * Deff, ctx.shieldSize * 0.3);
+  addName('몸체(자세·통신)', sx0 - 0.1 * Deff, yBus - 0.2 * Deff, -0.15 * Deff, true);
+  addName('안테나', sx0 + 0.12 * Deff, yBus - 0.32 * Deff, 0.1 * Deff, true);
   // 태양전지판: 실제 설계 참조
   //  A = JWST형: 5장짜리 단일 고정 배열(길이 ≈5.9 m/구경 6.5 m ≈ 0.9D), 차양막 쪽으로 20° 기울임, 접어 발사 후 순차 전개
   //  B·C = Roman형(SASS): 6장 — 중앙 2장 고정 + 외곽 4장 전개, 태양쪽에서 차광 겸용 (HWO는 규격 미공개 → 개념 크기)
@@ -510,7 +510,7 @@ function build(fit = true) {
     }
     tel.add(root); ctx.solarArea = nP * PWd * PLn;
     ctx.solarAnim = pw => hinges.forEach((hg, k) => { hg.rotation.x = k === 0 ? 0 : (k % 2 ? 1 : -1) * Math.PI * 0.98 * (1 - pw); });
-    ctx.solarLabel = 'JWST형 태양전지판 5장 (고정 배열 · 20° 기울임)';
+    ctx.solarLabel = '태양전지판 (JWST형 5장)';
   } else {
     const PWd = 0.17 * Deff, PLn = 0.40 * Deff, y0 = yBus - 0.075 * Deff, wings = [];
     for (const sgn of [1, -1]) {                                   // 중앙 고정 2장
@@ -525,7 +525,7 @@ function build(fit = true) {
     }
     ctx.solarArea = 6 * PWd * PLn;
     ctx.solarAnim = pw => wings.forEach(({ h1, h2, sgn }) => { h1.rotation.z = sgn * (Math.PI / 2) * (1 - pw); h2.rotation.z = -sgn * Math.PI * 0.98 * (1 - pw); });
-    ctx.solarLabel = 'Roman형 태양전지판 6장 (중앙 2 고정 + 외곽 4 전개)';
+    ctx.solarLabel = '태양전지판 (Roman형 6장)';
   }
   if (ctx.names) { const ln = label(ctx.solarLabel, 0.06 * Deff); ln.position.set(sx0 + (mode === 'A' ? 0.78 : 0.62) * Deff, yBus + 0.02 * Deff, 0); ctx.names.add(ln); }
   if (mode === 'B') {
@@ -588,7 +588,7 @@ function buildRays() {
   const rg = new THREE.Group(); ctx.rayGroup = rg; tel.add(rg); ctx.photons = null; ctx.photonPaths = [];
   const { opt, rs, R } = ctx;
   const list = ctx.mode === 'B' ? ctx.order.slice(0, ctx.count).map(g => g.userData.seg) : ctx.segs;
-  const per4 = list.length * 4 <= 720, offs = [[0, 0]];
+  const per4 = list.length * 4 <= 120, offs = [[0, 0]];   // 광선 수를 줄여 위쪽이 덜 빽빽하게
   if (per4) for (const a of [90, 210, 330]) offs.push([0.5 * R * Math.cos(a * Math.PI / 180), 0.5 * R * Math.sin(a * Math.PI / 180)]);
   const paths = [];
   for (const g of list) for (const [ox, oz] of offs) {
@@ -601,7 +601,7 @@ function buildRays() {
   for (const pa of paths) { const ci = pa.length === 3 ? [0, 2] : [0, 1, 2]; for (let i = 0; i < pa.length - 1; i++) { pos.push(...pa[i], ...pa[i + 1]); col.push(...cols[ci[i]], ...cols[ci[i]]); } }
   const lg = new THREE.BufferGeometry();
   lg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); lg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  rg.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5 })));
+  rg.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.3 })));
   const use = paths.slice(0, 240);
   ctx.photonPaths = use.map(pa => {
     const lens = []; let total = 0;
@@ -654,7 +654,8 @@ function applyT(t) {
     m.scale.set(b * k, 1, b * k);
   });
   // 부경 붐
-  if (ctx.names) ctx.names.visible = S.names;
+  if (ctx.names) { ctx.names.visible = S.names; const phone = window.innerWidth < 760; for (const l of ctx.names.children) if (l.userData.minor !== undefined) l.visible = !(phone && l.userData.minor); }
+  if (ctx.shield) ctx.shield.lbl.visible = !!S.shieldTemp && t > 0.75;   // 온도 이름표는 차양막이 다 펴진 뒤에만
   if (ctx.ssh) ctx.ssh.visible = !!S.starshade;
   if (ctx.sec) {
     const bm = mode === 'B' ? 1 : ph(t, 0.15, 0.55), yS = lerp(ctx.yStow, ctx.opt.d, bm) + AL.defocus * 0.012 * Deff;   // 초점 조절: 부경 앞뒤(과장)
@@ -821,7 +822,7 @@ function alGo(to, step, defocus) {
   if (step != null) AL.step = step;
   alSync();
 }
-const alShown = () => !!ctx.segs && $('alnSec').style.display !== 'none' && !$('panel').classList.contains('hide');
+const alShown = () => !!ctx.segs && $('alnSec').open && $('alnSec').style.display !== 'none' && !$('panel').classList.contains('hide');
 function alTick(now) {
   const A = AL.anim;
   if (A) {
@@ -960,7 +961,7 @@ function updateStats() {
 //       Sahoo 외 arXiv:2607.28393 (분할경 허용 오차 pm 수준). Fraunhofer 근사(동공 FFT)이며 코로나그래프는 포함하지 않음.
 const PSF_N = 512, PSF_DPX = 160, PSF_HALF = 16;   // 격자, 동공 지름 픽셀, 표시 반경(λ/D)
 let psfT = null, psfPerfect = { key: '', f: null };
-const advOpen = () => !!($('advPsf')?.open || $('advBud')?.open);   // 고급 상자를 하나라도 펼쳤을 때만 계산
+const advOpen = () => !!($('advWrap')?.open && ($('advPsf')?.open || $('advBud')?.open));   // 고급 상자를 하나라도 펼쳤을 때만 계산
 function schedulePSF() { clearTimeout(psfT); if (advOpen()) psfT = setTimeout(updatePSF, 140); }
 const fmtOpd = nm => !isFinite(nm) ? '∞' : nm >= 1000 ? (nm / 1000).toFixed(1) + ' µm' : nm >= 1 ? nm.toFixed(nm < 10 ? 1 : 0) + ' nm' : nm >= 1e-3 ? (nm * 1000).toFixed(nm < 0.01 ? 1 : 0) + ' pm' : (nm * 1e6).toFixed(nm < 1e-5 ? 1 : 0) + ' fm';
 function updatePSF() {
@@ -1033,7 +1034,7 @@ function applyShieldTemp() {
   const sh = ctx.shield; if (!sh) return;
   const T = SHIELD_TYPES[sh.type].pubT || sunshieldTemps(sh.nL).T, on = !!S.shieldTemp;
   while (sh.lbl.children.length) sh.lbl.remove(sh.lbl.children[0]);
-  sh.lbl.visible = on;
+  sh.lbl.visible = on && S.t > 0.75;
   sh.meshes.forEach((m, i) => {
     if (!m.isMesh) return;
     const Ti = T[sh.nL - 1 - i];   // ctx.layers[0] = 망원경 쪽, T[0] = 태양 쪽
@@ -1041,7 +1042,7 @@ function applyShieldTemp() {
     if (on) {
       const c = tempColor(Ti);
       m.material = new THREE.MeshStandardMaterial({ color: c, emissive: c.clone().multiplyScalar(0.22), metalness: 0.2, roughness: 0.6, side: THREE.DoubleSide });
-      const lb = label(`${sh.nL - i}층 ${Ti.toFixed(0)} K (${(Ti - 273.15).toFixed(0)}°C)`, 0.06 * ctx.Deff);
+      const lb = label(`${sh.nL - i}층 ${Ti.toFixed(0)} K`, 0.06 * ctx.Deff);
       lb.position.set(sh.side[0] + 0.3 * ctx.Deff, sh.meshes[0].position.y - i * 0.22 * ctx.Deff, sh.side[1]); sh.lbl.add(lb);   // 층 간격이 좁아 라벨은 벌려 놓음
     } else m.material = m.userData.mat0;
   });
@@ -1110,7 +1111,7 @@ const CONTROLS = [
 const CE = {};
 (function buildPanel() {
   const pn = $('panel');
-  pn.innerHTML = '<h2>설계 파라미터</h2><div id="sl"></div>' +
+  pn.innerHTML = '<details class="sec" id="secDesign" open><summary>📐 설계 값</summary><div id="sl"></div>' +
     '<div id="dRows"><div class="row"><label><span>망원경 수 · 배치</span></label><select id="dN"><option value="4">4대 · X자(직사각형) 배치 (LIFE 기본안)</option><option value="5">5대 · 오각형 배치 (최근 제안)</option></select></div>' +
     '<div class="row"><label><span>망원경 거울 지름</span><span id="dCollV"></span></label><input type="range" id="dColl" min="1" max="3.5" step="0.1"></div>' +
     '<div class="row"><label><span>망원경 사이 거리 (짧은 쪽)</span><span id="dBaseV"></span></label><input type="range" id="dBase" min="10" max="100" step="1"></div></div>' +
@@ -1119,8 +1120,9 @@ const CE = {};
     '<div class="row" id="eacRow"><label><span>HWO 구성(EAC)</span></label><select id="eac"></select></div>' +
     '<div class="row" id="lnRow"><label><span>발사체</span></label><select id="launcher"></select></div>' +
     '<div class="chk" id="ssRow"><input type="checkbox" id="ssh"><label for="ssh">스타셰이드(별도 우주선) 표시</label></div>' +
-    '<h2>성능 요약</h2><div id="stats"></div>' +
-    '<div id="alnSec"><h2>🔧 거울 맞추기 (핵심 조절)</h2><p class="easy">큰 우주망원경은 렌즈 대신 거울 조각을 씁니다. 조각마다 뒤에 작은 모터가 있어 기울기·높이를 아주 조금씩 움직여 맞춥니다(제임스웹: 조각당 7개, 부경 포함 모두 132개).</p>' +
+    '</details>' +
+    '<details class="sec" id="secStats"><summary>📊 성능 요약</summary><div id="stats"></div></details>' +
+    '<details class="sec" id="alnSec"><summary>🔧 거울 맞추기 · 연마</summary><p class="easy">거울 조각을 모터로 맞추고(정렬), 표면을 깎고 닦는(연마) 과정이 별 모습을 어떻게 바꾸는지 봅니다.</p>' +
     '<div class="seg3" id="alnTabs"><button type="button" data-a="jw">제임스웹 방식</button><button type="button" data-a="man">직접 조절</button><button type="button" data-a="foc">초점</button><button type="button" data-a="pol">연마</button></div>' +
     '<canvas id="alnC" width="257" height="257" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:8px auto 4px;background:#000;border:1px solid var(--bd);border-radius:8px;cursor:pointer"></canvas>' +
     '<div id="alnMsg" class="easy"></div>' +
@@ -1133,7 +1135,7 @@ const CE = {};
     '<p class="easy">그림 속 점(번호)을 누르면 그 조각이 골라지고, 3D에서 주황색으로 보입니다.</p></div>' +
     '<div id="alnFoc" hidden><div class="row"><label><span>부경 앞뒤 위치 (초점)</span><span id="alnFV"></span></label><input type="range" id="alnF" min="-3" max="3" step="0.05"></div>' +
     '<div class="row2"><button type="button" class="btn" id="alnF0">초점 맞춤</button></div>' +
-    '<p class="easy">작은 거울(부경)을 앞뒤로 아주 조금(실제로는 수~수십 µm) 움직이면 별이 흐려졌다 또렷해집니다. 3D에서는 크게 과장해 보여 줍니다. 값 = 거울 가장자리에서 빛이 늦게 도착하는 정도(파장 배수).</p></div>' +
+    '<details class="more"><summary>자세히</summary><p class="easy">작은 거울(부경)을 앞뒤로 아주 조금(실제로는 수~수십 µm) 움직이면 별이 흐려졌다 또렷해집니다. 3D에서는 크게 과장해 보여 줍니다. 값 = 거울 가장자리에서 빛이 늦게 도착하는 정도(파장 배수).</p></details></div>' +
     '<div id="alnPol" hidden>' +
     '<p class="easy">거울을 깎고 닦을 때 남는 흠을 넣어 봅니다. 위 그림 = 별 모습, 아래 그림 = 거울 표면 높낮이 지도(빨강 = 높음, 파랑 = 낮음).</p>' +
     '<canvas id="alnM" width="96" height="96" style="width:100%;max-width:200px;aspect-ratio:1;display:block;margin:4px auto;background:#000;border:1px solid var(--bd);border-radius:8px;image-rendering:pixelated"></canvas>' +
@@ -1143,21 +1145,21 @@ const CE = {};
     '<div class="row"><label><span>③ 가장자리 처짐 (모서리가 둥글게 닳음)</span><span id="polEdgeV"></span></label><input type="range" id="polEdge" min="0" max="600" step="5"></div>' +
     '<div class="row"><label><span>④ 냉각 변형 (영하 240°C에서 휘는 것을 미리 안 깎음)</span><span id="polColdV"></span></label><input type="range" id="polCold" min="0" max="600" step="5"></div>' +
     '<div class="row2"><button type="button" class="btn" id="polRaw">연마 덜 된 거울</button><button type="button" class="btn" id="polJw">제임스웹 수준</button><button type="button" class="btn" id="polZero">완벽</button></div>' +
-    '<p class="note">왜 어렵나: ① 표면 오차를 수십 nm(머리카락 굵기의 수천분의 1) 이하로 깎아야 합니다. ② 우주로 쏘려면 뒷면을 벌집처럼 파내 가볍게 하는데, 닦을 때 누르는 힘에 얇은 앞판이 휘어 벌집 자국이 남습니다(천문연이 실리콘카바이드 경량 거울로 연구한 문제). ③ 조각마다 가장자리가 많아 모서리가 닳으면 별빛이 퍼집니다. ④ 제임스웹은 실온에서 깎은 뒤 극저온 시험실에서 휘는 양을 재어 그만큼을 거꾸로 깎아 넣었습니다. 값은 반사된 빛 기준(파면) nm, 개략 모델입니다.</p>' +
+    '<details class="more"><summary>왜 어렵나</summary><p class="note">① 표면 오차를 수십 nm(머리카락 굵기의 수천분의 1) 이하로 깎아야 합니다. ② 우주로 쏘려면 뒷면을 벌집처럼 파내 가볍게 하는데, 닦을 때 누르는 힘에 얇은 앞판이 휘어 벌집 자국이 남습니다(천문연이 실리콘카바이드 경량 거울로 연구한 문제). ③ 조각마다 가장자리가 많아 모서리가 닳으면 별빛이 퍼집니다. ④ 제임스웹은 실온에서 깎은 뒤 극저온 시험실에서 휘는 양을 재어 그만큼을 거꾸로 깎아 넣었습니다. 값은 반사된 빛 기준(파면) nm, 개략 모델입니다.</p></details>' +
     '</div>' +
     '<div id="alnStat"></div>' +
-    '<p class="note">국내 근거: 한국천문연구원은 거울 조각을 지지대에 조립하고, 모터로 위치를 맞추고, 레이저 간섭계로 조각의 높이 차이를 재는 장치를 만들어 시험했습니다(<a href="https://arxiv.org/abs/2609.02571" target="_blank" rel="noopener">3.5m 분할거울 우주망원경 백서 3.2절, 2026</a>). 또 가벼운 우주용 거울(실리콘카바이드)을 매끈하게 깎고 닦는 기술을 2014년부터 미국 국립광학천문대와 함께 연구했고(<a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2018-16-kasi-application-of-extended-mari-concept-for-sic-mirrors-rev-a.pdf" target="_blank" rel="noopener">NASA 거울기술 워크숍 2018</a> · <a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2017-27-kasi-optical-characterization-of-300-mm-sic-mirrors.pdf" target="_blank" rel="noopener">2017</a>), 비대칭 오목 거울 조각의 모양을 정하는 방법도 발표했습니다(<a href="https://repository.arizona.edu/handle/10150/634628" target="_blank" rel="noopener">한정열 외, JATIS 2019</a>). 이 화면의 조각별 기울기·높이 맞추기가 바로 그 기술을 단순하게 보여 주는 것입니다.</p></div>' +
-    '<h2>표시</h2><div class="chk"><input type="checkbox" id="rays" checked><label for="rays">광선 경로</label></div>' +
+    '<details class="more"><summary>국내 근거</summary><p class="note">한국천문연구원은 거울 조각을 지지대에 조립하고, 모터로 위치를 맞추고, 레이저 간섭계로 조각의 높이 차이를 재는 장치를 만들어 시험했습니다(<a href="https://arxiv.org/abs/2609.02571" target="_blank" rel="noopener">3.5m 분할거울 우주망원경 백서 3.2절, 2026</a>). 또 가벼운 우주용 거울(실리콘카바이드)을 매끈하게 깎고 닦는 기술을 2014년부터 미국 국립광학천문대와 함께 연구했고(<a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2018-16-kasi-application-of-extended-mari-concept-for-sic-mirrors-rev-a.pdf" target="_blank" rel="noopener">NASA 거울기술 워크숍 2018</a> · <a href="https://www.nasa.gov/wp-content/uploads/2024/04/optics-xrcf-techdays2017-27-kasi-optical-characterization-of-300-mm-sic-mirrors.pdf" target="_blank" rel="noopener">2017</a>), 비대칭 오목 거울 조각의 모양을 정하는 방법도 발표했습니다(<a href="https://repository.arizona.edu/handle/10150/634628" target="_blank" rel="noopener">한정열 외, JATIS 2019</a>). 이 화면의 조각별 기울기·높이 맞추기가 바로 그 기술을 단순하게 보여 주는 것입니다.</p></details></details>' +
+    '<details class="sec" id="secView"><summary>👁 표시 설정</summary><div class="chk"><input type="checkbox" id="rays" checked><label for="rays">광선 경로</label></div>' +
     '<div class="chk" id="nasaRow"><input type="checkbox" id="nasa" checked><label for="nasa">NASA 실제 3D 모델 사용 <span id="nasaSt" style="color:var(--mu)"></span></label></div>' +
     '<div class="row"><label><span>저궤도 고도 (🛰 LEO 뷰·한국형)</span><span id="leoHV"></span></label><input type="range" id="leoH" min="350" max="1200" step="10"></div>' +
     '<div class="chk"><input type="checkbox" id="shT"><label for="shT">차양막 층별 온도 색 표시</label></div>' +
     '<div class="row" id="shGapRow"><label><span>차양막 층 간격 (1 = 실제 비율에 가깝게)</span><span id="shGapV"></span></label><input type="range" id="shGap" min="0.3" max="4" step="0.1"></div>' +
-    '<p class="note" id="shGapNote">제임스웹 차양막은 막 한 장이 0.025~0.05 mm로 아주 얇고, 층 사이는 가운데가 몇 cm, 가장자리로 갈수록 수십 cm까지 벌어집니다(벌어진 틈으로 열이 옆으로 빠져나감). 층을 잘 보려면 간격을 키워 보세요.</p>' +
+    '<details class="more"><summary>차양막 실제 모습</summary><p class="note" id="shGapNote">제임스웹 차양막은 막 한 장이 0.025~0.05 mm로 아주 얇고, 층 사이는 가운데가 몇 cm, 가장자리로 갈수록 수십 cm까지 벌어집니다(벌어진 틈으로 열이 옆으로 빠져나감). 층을 잘 보려면 간격을 키워 보세요.</p></details>' +
     '<div class="chk"><input type="checkbox" id="names" checked><label for="names">부품 이름</label></div>' +
     '<div class="chk"><input type="checkbox" id="phot" checked><label for="phot">광자 애니메이션</label></div>' +
     '<div class="chk"><input type="checkbox" id="auto"><label for="auto">자동 회전</label></div>' +
-    '<p class="note">근거(최신 논문): <a href="https://arxiv.org/abs/2601.11803" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 개념·기술 성숙(arXiv 2601.11803)</a> · <a href="https://arxiv.org/abs/2607.02773" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 기술개발계획(arXiv 2607.02773)</a> · <a href="https://arxiv.org/abs/2507.02812" target="_blank" rel="noopener" style="color:var(--ac2)">액체거울 FLUTE(arXiv 2507.02812)</a></p><p class="note">거울 크기×링 수로 구경이 결정됩니다(최대 약 400장). 질량·적합성은 공개 자료 기반 개략치이며 구조·열·광학 정밀 해석을 대체하지 않습니다. 광학계는 카세그레인 단순화(JWST의 3반사경 아님).</p>' +
-    '<div id="advWrap"><h2>더 알아보기 (고급 계산)</h2><p class="easy">아래 상자를 누르면 펼쳐집니다. 접혀 있는 동안은 계산하지 않아 화면이 가볍습니다.</p>' +
+    '</details>' +
+    '<details class="sec" id="advWrap"><summary>📚 더 알아보기 (고급 계산·근거)</summary>' +
     '<details class="adv" id="advPsf"><summary>⭐ 별빛 번짐 무늬 · 거울 정렬 오차</summary><p class="easy">거울 조각들이 아주 조금씩 어긋나면 별 사진이 얼마나 흐려지는지, 별빛을 가리는 장치(코로나그래프)를 쓰면 별 바로 옆이 얼마나 어두워지는지 어림 계산합니다. 용어: PSF = 별 하나가 찍힌 모양, piston·tip/tilt = 거울 조각의 높이·기울기 어긋남, IWA = 별빛을 가리는 원의 반지름, λ/D = 망원경이 구분할 수 있는 가장 작은 각도, Strehl = 1에 가까울수록 선명.</p>' +
     '<canvas id="psf" width="206" height="206" style="width:100%;max-width:260px;aspect-ratio:1;display:block;margin:0 auto;background:#000;border:1px solid var(--bd);border-radius:8px"></canvas>' +
     '<div class="row"><label><span>표시</span></label><select id="psfMode"><option value="raw">원시 PSF (코로나그래프 없음)</option><option value="cor">코로나그래프 후 (이상적, 별빛 제거)</option></select></div>' +
@@ -1178,7 +1180,9 @@ const CE = {};
     '<details class="adv" id="advSh"><summary>☂ 차양막 비교 (최근 논문 vs 제임스웹)</summary>' +
     '<div class="row"><label><span>3D 차양막 종류 (제임스웹 실사 제외)</span></label><select id="shType"></select></div>' +
     '<div id="shCmp"></div>' +
-    '</details></div>';
+    '</details>' +
+    '<p class="note">근거(최신 논문): <a href="https://arxiv.org/abs/2601.11803" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 개념·기술 성숙(arXiv 2601.11803)</a> · <a href="https://arxiv.org/abs/2607.02773" target="_blank" rel="noopener" style="color:var(--ac2)">HWO 기술개발계획(arXiv 2607.02773)</a> · <a href="https://arxiv.org/abs/2507.02812" target="_blank" rel="noopener" style="color:var(--ac2)">액체거울 FLUTE(arXiv 2507.02812)</a></p><p class="note">거울 크기×링 수로 구경이 결정됩니다(최대 약 400장). 질량·적합성은 공개 자료 기반 개략치이며 구조·열·광학 정밀 해석을 대체하지 않습니다. 광학계는 카세그레인 단순화(JWST의 3반사경 아님).</p>' +
+    '</details>';
   const sl = $('sl');
   for (const [k, name, unit, min, max, step, modes, lg] of CONTROLS) {
     const row = document.createElement('div'); row.className = 'row';
@@ -1198,7 +1202,9 @@ const CE = {};
   for (const k in EACS) { const o = document.createElement('option'); o.value = k; o.textContent = EACS[k].name; es.appendChild(o); }
   es.addEventListener('change', () => { Object.assign(S, EACS[es.value], { eac: es.value }); syncUI(); build(false); });
   $('pis').value = S.pisLog; $('tt').value = S.ttLog; $('iwa').value = S.iwa; $('psfMode').value = S.psfMode;
-  for (const id of ['advPsf', 'advBud']) $(id).addEventListener('toggle', () => schedulePSF());
+  for (const id of ['advPsf', 'advBud', 'advWrap']) $(id).addEventListener('toggle', () => schedulePSF());
+  $('alnSec').addEventListener('toggle', () => { AL.dirty = true; });
+  if (window.innerWidth >= 760) $('secStats').open = true;   // 컴퓨터: 성능 요약도 펼쳐 둠 (폰은 설계 값만)
   for (const k in TARGETS) $('budT').add(new Option(TARGETS[k].name, k));
   $('budT').value = S.budTarget; $('budT').addEventListener('change', e => { S.budTarget = e.target.value; updateBudget(); });
   for (const [id, k] of [['dpc', 'dPc'], ['th', 'tLog'], ['dr', 'drLog'], ['tau', 'tau']]) {
@@ -1330,7 +1336,8 @@ function label(text, sc = 1) {
   const x = cv.getContext('2d'); x.font = 'bold 44px "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
   x.fillStyle = '#e6ecf8'; x.textAlign = 'center'; x.fillText(text, 512, 76);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false }));
-  sp.scale.set(16 * sc, 2 * sc, 1); return sp;
+  const k = window.innerWidth < 760 ? 1.4 : 1;   // 폰: 글씨를 조금 크게
+  sp.scale.set(16 * sc * k, 2 * sc * k, 1); return sp;
 }
 // 3D 값 잡음 (구면 좌표에서 샘플링해 경도 이음매가 없음)
 const hash3 = (x, y, z) => { let h = (x * 374761393 + y * 668265263 + z * 1274126177) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
