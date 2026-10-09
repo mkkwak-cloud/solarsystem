@@ -889,9 +889,9 @@ function alPlace() {
     if (go) { if (el.parentNode !== $('alnFloatBody')) $('alnFloatBody').appendChild(el); }
     else if (el.parentNode !== alHome[id].parent) alHome[id].parent.insertBefore(el, alHome[id].next);
   }
+  if (alFloat.hidden === want) AL.dirty = true;   // 보임 상태가 바뀔 때만 다시 그림
   alFloat.hidden = !want;
   if (want) alFloat.style.top = ($('top').getBoundingClientRect().bottom + 6) + 'px';
-  AL.dirty = true;
 }
 function drawPolMap(pup, lamNm) {   // 거울 표면 높낮이 지도(파면 nm): 빨강 = 높음, 파랑 = 낮음
   const cv = $('alnM'); if (!cv) return;
@@ -1579,6 +1579,7 @@ function frame(now) {
   }
   syncBar();
   alTick(now);
+  if (now - (frame.lastPlace || 0) > 400) { frame.lastPlace = now; alPlace(); }   // 열고 닫기 이벤트를 놓쳐도 0.4초마다 별 그림 창 위치를 다시 맞춤
   applyT(S.t);
   if (S.view === 'leo') updateLEO(now / 1000); else if (S.view === 'earth') updateEarthView(now / 1000);
   updatePhotons(now / 1000);
