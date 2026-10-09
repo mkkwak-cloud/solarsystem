@@ -72,7 +72,7 @@ function makeEnv(pm) {
   return pm.fromScene(room, 0.04).texture;
 }
 
-const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst', dN: 4, dColl: 2, dBase: 40, fType: 'mem' };
+const S = { mode: 'A', ...PRESETS.A, gap: GAP, t: 0, playing: true, rays: true, photons: true, view: 'tel', auto: false, names: true, starshade: false, jwst: false, korea: false, nasa: true, pisLog: 4.3, ttLog: 4.3, struts: true, psfMode: 'raw', iwa: 3.5, dPc: 5, tLog: 2, drLog: 1.7, tau: 0.12, shieldTemp: false, leoH: 600, budTarget: 'sun', shieldType: 'jwst', dN: 4, dColl: 2, dBase: 40, fType: 'mem', shGap: 1 };
 // 거울 맞추기 상태: err[조각 번호] = { dx, dy (별 상 위치 어긋남, λ/D), p (높이 어긋남, 파장 배수) }, defocus = 초점 어긋남(파장 배수)
 const AL = { tab: 'jw', base: [], err: [], step: 4, sel: 0, defocus: 0, anim: null, nSeg: -1, last: 0, dirty: true, view: null, touched: false };
 const DUR = { A: 16, B: 24, C: 14, D: 12, F: 12 };
@@ -393,7 +393,10 @@ function build(fit = true) {
   const bb = opt.cass ? opt.b : 0.10 * Deff;
   const st = S.jwst ? 'jwst' : S.shieldType;   // 차양막 종류(JWST형 기본 / SALTUS형 / V-groove형)
   const nL = st === 'saltus' ? 2 : st === 'vgroove' ? 3 : mode === 'A' ? (S.korea ? 2 : 5) : mode === 'B' ? 3 : 2;
-  const spc = (st === 'saltus' ? 0.14 : st === 'vgroove' ? 0.08 : mode === 'C' ? 0.02 : 0.045) * Deff;
+  // 제임스웹형(연 모양) 막: 층 간격이 가운데는 몇 cm, 가장자리로 갈수록 벌어짐(실제: 가운데 수 인치, 가장자리 수 피트). S.shGap = 보기용 배율
+  const kite = st !== 'saltus' && st !== 'vgroove' && mode !== 'C';
+  const cGap = 0.012 * Deff * S.shGap, eGap = 0.04 * Deff * S.shGap;   // 가운데 간격(6.6 m 기준 약 8 cm), 가장자리 간격(약 26 cm)
+  const spc = kite ? cGap : (st === 'saltus' ? 0.14 : st === 'vgroove' ? 0.08 : 0.02) * Deff;
   const ySS0 = -bb - (opt.cass ? 0.30 : 0.06) * Deff, yLast = ySS0 - (nL - 1) * spc;
   const sx0 = mode === 'C' ? opt.x0 * 0.5 : 0;
   ctx.layers = [];
@@ -443,10 +446,13 @@ function build(fit = true) {
       m.rotation.z = (i % 2 ? -1 : 1) * (0.05 + 0.05 * i); m.userData.bs = 1;
     } else if (mode === 'C') { m = new THREE.Mesh(new THREE.CircleGeometry(1, 56).rotateX(Math.PI / 2), S.jwst ? M.shieldJ : M.shield); m.scale.set(Deff, 1, Deff); }
     else {
-      const fz = 1 - 0.012 * (nL - 1 - i), kg = kiteGeom(Ws * fz, Ls * fz, 0.016 * Deff);   // 층마다 크기 약간 다르게
+      const sag0 = 0.016 * Deff, sagI = sag0 - i * (eGap - cGap);   // 아래층일수록 덜 처져 가운데는 붙고 가장자리는 벌어짐
+      const fz = 1 - 0.012 * (nL - 1 - i), kg = kiteGeom(Ws * fz, Ls * fz, sagI);   // 층마다 크기 약간 다르게
       m = new THREE.Mesh(kg.g, S.jwst ? M.shieldJ : M.shield); m.add(new THREE.LineLoop(kg.edge, edgeMat));
+      m.position.set(sx0, ySS0 - sag0 + sagI - i * cGap, 0);   // 가운데 = ySS0 - sag0 - i·cGap, 가장자리 = ySS0 - i·eGap
     }
-    m.position.set(sx0, ySS0 - i * spc, 0); tel.add(m); ctx.layers.push(m);
+    if (!kite) m.position.set(sx0, ySS0 - i * spc, 0);
+    tel.add(m); ctx.layers.push(m);
   }
   ctx.shield = { nL, type: st, meshes: ctx.layers.slice(0, nL), lbl: new THREE.Group(), side: st === 'saltus' ? [0.75 * Deff, 0] : st === 'vgroove' ? [0.95 * Deff, 0] : mode === 'C' ? [Deff * 1.08, 0] : [0.5 * Ws + 0.05 * Deff, 0.06 * Ls] };
   ctx.shield.lbl.position.set(sx0, 0, 0); tel.add(ctx.shield.lbl);
@@ -1109,6 +1115,8 @@ const CE = {};
     '<div class="chk" id="nasaRow"><input type="checkbox" id="nasa" checked><label for="nasa">NASA 실제 3D 모델 사용 <span id="nasaSt" style="color:var(--mu)"></span></label></div>' +
     '<div class="row"><label><span>저궤도 고도 (🛰 LEO 뷰·한국형)</span><span id="leoHV"></span></label><input type="range" id="leoH" min="350" max="1200" step="10"></div>' +
     '<div class="chk"><input type="checkbox" id="shT"><label for="shT">차양막 층별 온도 색 표시</label></div>' +
+    '<div class="row" id="shGapRow"><label><span>차양막 층 간격 (1 = 실제 비율에 가깝게)</span><span id="shGapV"></span></label><input type="range" id="shGap" min="0.3" max="4" step="0.1"></div>' +
+    '<p class="note" id="shGapNote">제임스웹 차양막은 막 한 장이 0.025~0.05 mm로 아주 얇고, 층 사이는 가운데가 몇 cm, 가장자리로 갈수록 수십 cm까지 벌어집니다(벌어진 틈으로 열이 옆으로 빠져나감). 층을 잘 보려면 간격을 키워 보세요.</p>' +
     '<div class="chk"><input type="checkbox" id="names" checked><label for="names">부품 이름</label></div>' +
     '<div class="chk"><input type="checkbox" id="phot" checked><label for="phot">광자 애니메이션</label></div>' +
     '<div class="chk"><input type="checkbox" id="auto"><label for="auto">자동 회전</label></div>' +
@@ -1176,6 +1184,9 @@ const CE = {};
   $('shType').value = S.shieldType; $('shType').addEventListener('change', e => { S.shieldType = e.target.value; build(false); renderShieldCmp(); });
   renderShieldCmp();
   $('shT').addEventListener('change', e => { S.shieldTemp = e.target.checked; applyShieldTemp(); });
+  const shGapShow = () => { $('shGapV').textContent = S.shGap.toFixed(1) + '배'; };
+  $('shGap').value = S.shGap; shGapShow();
+  $('shGap').addEventListener('input', e => { S.shGap = +e.target.value; shGapShow(); scheduleBuild(); });
   $('nasa').addEventListener('change', e => { S.nasa = e.target.checked; build(false); });
   $('auto').addEventListener('change', e => { S.auto = e.target.checked; });
   // ③ 편대 간섭계 · 미래형

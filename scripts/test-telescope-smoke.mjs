@@ -131,5 +131,16 @@ for (const [m, patch] of [['D', { dN: 4 }], ['D', { dN: 5, dColl: 3.5, dBase: 90
 }
 T.setMode('A'); T.frame(40000);
 check(!T.getCtx().concept && T.getCtx().segs.length > 0, '개념 장면에서 다시 일반 모드로');
+// 차양막(5겹): 가운데는 촘촘, 가장자리는 벌어짐 (S.shGap = 1)
+T.setMode('A'); T.S.shGap = 1; T.build(false);
+{
+  const c = T.getCtx(), L = c.layers.slice(0, 5).map(m => {
+    const a = m.geometry.attributes.position.array, y0 = m.position.y; return { center: y0 + a[1], edge: y0 + a[a.length - 2] };
+  });
+  const cg = L.slice(1).map((l, i) => L[i].center - l.center), eg = L.slice(1).map((l, i) => L[i].edge - l.edge);
+  console.log('차양막 층 간격(m) 가운데', cg.map(v => v.toFixed(3)).join(' '), '/ 가장자리', eg.map(v => v.toFixed(3)).join(' '));
+  check(cg.every(v => v > 0.03 && v < 0.15), '차양막 가운데 간격 수 cm');
+  check(eg.every((v, i) => v > cg[i] * 2), '차양막 가장자리가 더 벌어짐');
+}
 console.log(fails ? `\n실패 ${fails}건` : '\n스모크 테스트 통과');
 process.exitCode = fails ? 1 : 0;
