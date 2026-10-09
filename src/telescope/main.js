@@ -169,7 +169,7 @@ const cellTex = mkTex(512, 400, (x, w, h) => {
 });
 const mliTex = crinkleTex('#c9a45a');
 const M = {
-  mirror: new THREE.MeshStandardMaterial({ color: 0xf2c355, metalness: 1, roughness: 0.22, side: THREE.DoubleSide }),
+  mirror: new THREE.MeshStandardMaterial({ color: 0xf2c355, metalness: 0.7, roughness: 0.32, emissive: 0x7a5410, envMapIntensity: 1.6, side: THREE.DoubleSide }),   // 금도금: 어느 각도에서도 금색이 보이게(완전 금속이면 어두운 배경만 비쳐 검게 보임)
   back: new THREE.MeshStandardMaterial({ color: 0x2b2f38, metalness: 0.6, roughness: 0.5 }),
   bp: new THREE.MeshStandardMaterial({ color: 0x3b4150, metalness: 0.5, roughness: 0.6 }),
   strut: new THREE.MeshStandardMaterial({ color: 0x9aa3b5, metalness: 0.8, roughness: 0.35 }),
