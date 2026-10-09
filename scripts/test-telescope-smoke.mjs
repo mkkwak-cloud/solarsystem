@@ -77,7 +77,7 @@ function el() {
     querySelector() { return el(); }, getContext() { return new Proxy({}, { get: (o, k) => (k in o ? o[k] : k === 'createImageData' ? (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }) : () => ({ addColorStop() { } })), set: (o, k, v) => { o[k] = v; return true; } }); } };
   return e;
 }
-globalThis.document = { body: { appendChild() { } }, getElementById: id => (els[id] ||= el()), createElement: () => el(), querySelectorAll: () => [] };
+globalThis.document = { addEventListener() { }, body: { appendChild() { } }, getElementById: id => (els[id] ||= el()), createElement: () => el(), querySelectorAll: () => [] };
 globalThis.Option = class { };
 globalThis.window = { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1, addEventListener() { } };
 globalThis.performance = { now: () => 0 };

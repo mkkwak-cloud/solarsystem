@@ -109,3 +109,7 @@ details.more>summary{cursor:pointer;font-size:11.5px;color:var(--ac2);padding:4p
 #alnFloat .ft{font-size:10.5px;color:var(--mu);text-align:center;margin-bottom:2px}
 #alnFloat canvas{width:100%!important;max-width:none!important;margin:0 0 3px!important}
 #alnFloatTxt{font-size:11px;text-align:center;color:var(--ac)}
+/* 눌림 표시: 누르는 순간 색 반전 + 살짝 작아짐 (폰은 :active 가 짧아 .flash 로 0.25초 유지) */
+.btn,.tab,.seg3 button,.steps button{transition:background .12s,color .12s,transform .08s}
+.btn:active,.tab:active,.seg3 button:active,.steps button:active,
+.btn.flash,.tab.flash,.seg3 button.flash,.steps button.flash{background:var(--ac);color:#05070d;border-color:var(--ac);transform:scale(.95)}

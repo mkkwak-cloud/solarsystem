@@ -1342,6 +1342,11 @@ eb.onclick = () => toggleView('earth'); lb.onclick = () => toggleView('leo');
 ib.onclick = () => { const i = $('info'); i.style.display = i.style.display === 'none' ? '' : 'none'; };
 { const sep = document.createElement('span'); sep.className = 'sep'; sep.title = '왼쪽: 망원경 종류 · 오른쪽: 보기 전환'; tabs.appendChild(sep); }
 tabs.appendChild(eb); tabs.appendChild(lb); tabs.appendChild(ib);
+// 버튼 눌림 표시: 누른 버튼을 0.25초 동안 색 반전
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('.btn, .tab, .seg3 button, .steps button'); if (!t) return;
+  t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 250);
+});
 $('gear').onclick = () => { $('panel').classList.toggle('hide'); syncGear(); alPlace(); setTimeout(resize, 300); };
 function syncGear() { $('gear').textContent = $('panel').classList.contains('hide') ? '⚙ 설계 열기' : '⚙ 설계 닫기'; }
 syncGear();
